@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineVoto - Escolha o Filme de Hoje</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="background-decor">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo-area">
+                <i class="fa-solid fa-film logo-icon"></i>
+                <h1 class="logo-title">Cine<span>Voto</span></h1>
+            </div>
+            <p class="logo-subtitle">A votação perfeita para a noite de cinema</p>
+        </header>
+
+        <!-- Main Layout: 3 Columns Grid -->
+        <div class="app-layout">
+            
+            <!-- Left Column: Controls and Status -->
+            <aside class="layout-col col-left">
+                <div class="card status-card">
+                    <h3><i class="fa-solid fa-circle-nodes"></i> Painel de Controle</h3>
+                    <p class="status-description">Gerencie a sessão de votação ativa e limpe o histórico se necessário.</p>
+                    
+                    <div id="active-controls" class="control-group hidden">
+                        <button id="finish-round-btn" class="btn btn-primary"><i class="fa-solid fa-check-double"></i> Finalizar Votação</button>
+                    </div>
+                    
+                    <button id="reset-all-btn" class="btn btn-danger"><i class="fa-solid fa-xmark"></i> Cancelar Votação</button>
+                </div>
+
+                <div class="card info-card">
+                    <h3><i class="fa-solid fa-circle-question"></i> Como Funciona?</h3>
+                    <ul class="help-list">
+                        <li><i class="fa-solid fa-chevron-right"></i> Cadastre <strong>3 filmes</strong> para começar.</li>
+                        <li><i class="fa-solid fa-chevron-right"></i> Votem na lista de filmes ativos.</li>
+                        <li><i class="fa-solid fa-chevron-right"></i> Ao finalizar, o vencedor vai para os <strong>Assistidos</strong>.</li>
+                        <li><i class="fa-solid fa-chevron-right"></i> Filmes assistidos não podem ser repetidos!</li>
+                    </ul>
+                </div>
+            </aside>
+
+            <!-- Center Column: Main Active Content (Form or Voting) -->
+            <main class="layout-col col-center">
+                <!-- Section 1: Setup Form (shown when inactive) -->
+                <section id="setup-section" class="setup-area card hidden">
+                    <div class="setup-header">
+                        <h2><i class="fa-solid fa-clapperboard"></i> Configurar Nova Rodada</h2>
+                        <p>Sugira exatamente 3 filmes para iniciar a votação de hoje:</p>
+                    </div>
+                    <form id="setup-movies-form" class="setup-form">
+                        <div class="input-group">
+                            <input type="text" id="movie-1-input" placeholder="1º Filme (ex: A Origem)" required autocomplete="off">
+                            <label for="movie-1-input"><i class="fa-solid fa-1"></i></label>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="movie-2-input" placeholder="2º Filme (ex: Clube da Luta)" required autocomplete="off">
+                            <label for="movie-2-input"><i class="fa-solid fa-2"></i></label>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="movie-3-input" placeholder="3º Filme (ex: Forrest Gump)" required autocomplete="off">
+                            <label for="movie-3-input"><i class="fa-solid fa-3"></i></label>
+                        </div>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-play"></i> Iniciar Votação</button>
+                    </form>
+                </section>
+
+                <!-- Section 2: Voting Interface (shown when active) -->
+                <section id="voting-section" class="voting-area hidden">
+                    <!-- Current Winner Tracker -->
+                    <div id="winner-banner" class="winner-card hidden">
+                        <div class="winner-glow"></div>
+                        <div class="winner-content">
+                            <div class="winner-badge"><i class="fa-solid fa-trophy"></i> Vencedor Atual</div>
+                            <h2 id="winner-title" class="winner-title">Nenhum voto</h2>
+                            <p id="winner-stats" class="winner-stats">Quem vai ganhar hoje?</p>
+                        </div>
+                    </div>
+
+                    <!-- Alerta de Voto Já Realizado -->
+                    <div id="voted-alert" class="voted-alert-box hidden">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Você já votou nesta rodada! Aguardando a finalização da votação.</span>
+                    </div>
+
+                    <!-- Movies List -->
+                    <div class="movies-container">
+                        <div class="section-header">
+                            <h2><i class="fa-solid fa-square-poll-vertical"></i> Escolha seu Filme</h2>
+                            <span id="total-votes-badge" class="total-badge">Total: 0 votos</span>
+                        </div>
+                        <div id="movies-list" class="movies-list">
+                            <!-- JS will inject movie items here -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Loading Spinner State -->
+                <div id="loading-spinner" class="loading-state">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Carregando dados...
+                </div>
+            </main>
+
+            <!-- Right Column: Watched / Winner History -->
+            <aside class="layout-col col-right">
+                <div class="card watched-card">
+                    <h3><i class="fa-solid fa-ticket"></i> Filmes Assistidos</h3>
+                    <p class="watched-subtitle">Filmes que já venceram rodadas anteriores e estão fora de votações futuras:</p>
+                    
+                    <div id="watched-list" class="watched-list">
+                        <!-- Dynamic list of watched movies -->
+                        <div class="watched-empty">
+                            <i class="fa-solid fa-ghost"></i>
+                            <p>Nenhum filme assistido ainda. Que tal começar uma votação?</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+            
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>CineVoto © 2026 - O seu guia perfeito para noites de cinema 🍿🎬</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+bin/
+cinevoto_data.txt
+.idea/
+.vscode/
+*.class
+*.log
