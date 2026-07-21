@@ -213,6 +213,20 @@ public class VotacaoFilmeServer {
         return false;
     }
 
+    // Obtém o IP real do cliente, considerando possíveis proxies reversos (Nginx, Proxmox, etc.)
+    private static String getClientIp(HttpExchange exchange) {
+        String xForwardedFor = exchange.getRequestHeaders().getFirst("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.trim().isEmpty()) {
+            String[] ips = xForwardedFor.split(",");
+            return ips[0].trim();
+        }
+        String xRealIp = exchange.getRequestHeaders().getFirst("X-Real-IP");
+        if (xRealIp != null && !xRealIp.trim().isEmpty()) {
+            return xRealIp.trim();
+        }
+        return exchange.getRemoteAddress().getAddress().getHostAddress();
+    }
+
     // GET /api/estado
     static class EstadoHandler implements HttpHandler {
         @Override
@@ -220,7 +234,7 @@ public class VotacaoFilmeServer {
             if (handleOptions(exchange)) return;
             
             if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-                String clientIp = exchange.getRemoteAddress().getAddress().getHostAddress();
+                String clientIp = getClientIp(exchange);
                 sendJsonResponse(exchange, 200, getStateJson(clientIp));
             } else {
                 sendJsonResponse(exchange, 405, "{\"error\":\"Método não permitido. Use GET.\"}");
@@ -284,7 +298,7 @@ public class VotacaoFilmeServer {
                     }
 
                     saveData();
-                    String clientIp = exchange.getRemoteAddress().getAddress().getHostAddress();
+                    String clientIp = getClientIp(exchange);
                     sendJsonResponse(exchange, 200, getStateJson(clientIp));
                 } catch (Exception e) {
                     sendJsonResponse(exchange, 500, "{\"error\":\"Erro ao iniciar rodada de votação.\"}");
@@ -303,7 +317,7 @@ public class VotacaoFilmeServer {
 
             if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                 try {
-                    String clientIp = exchange.getRemoteAddress().getAddress().getHostAddress();
+                    String clientIp = getClientIp(exchange);
 
                     // Validação de negócio: Apenas 1 voto por IP
                     if (votedIps.contains(clientIp)) {
@@ -371,7 +385,7 @@ public class VotacaoFilmeServer {
                     votedIps.clear();
 
                     saveData();
-                    String clientIp = exchange.getRemoteAddress().getAddress().getHostAddress();
+                    String clientIp = getClientIp(exchange);
                     sendJsonResponse(exchange, 200, getStateJson(clientIp));
                 } else {
                     sendJsonResponse(exchange, 500, "{\"error\":\"Não foi possível determinar o vencedor.\"}");
@@ -396,7 +410,7 @@ public class VotacaoFilmeServer {
 
                 saveData(); // Salva o novo estado mantendo o histórico de assistidos
 
-                String clientIp = exchange.getRemoteAddress().getAddress().getHostAddress();
+                String clientIp = getClientIp(exchange);
                 sendJsonResponse(exchange, 200, getStateJson(clientIp));
             } else {
                 sendJsonResponse(exchange, 405, "{\"error\":\"Método não permitido. Use POST.\"}");
