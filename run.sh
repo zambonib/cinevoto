@@ -5,7 +5,7 @@ echo "=========================================="
 echo "Compilando CineVoto (Java + Web)"
 echo "=========================================="
 mkdir -p bin
-javac -d bin src/VotacaoFilmeServer.java
+javac -cp "lib/*" -d bin src/VotacaoFilmeServer.java
 
 if [ $? -ne 0 ]; then
     echo ""
@@ -18,4 +18,4 @@ echo "=========================================="
 echo "Iniciando Servidor na porta 8080..."
 echo "=========================================="
 # Permite rodar com porta customizada passando argumento, ex: ./run.sh 9090
-java -cp bin src.VotacaoFilmeServer "$@"
+java -cp "bin:lib/*" src.VotacaoFilmeServer "$@"

@@ -15,9 +15,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.net.ssl.SSLSocketFactory;
+import javax.mail.*;
+import javax.mail.internet.*;
 
 public class VotacaoFilmeServer {
 
@@ -323,8 +326,8 @@ public class VotacaoFilmeServer {
         return board;
     }
 
-    // Cliente SMTP nativo em Java puro (sem dependências externas)
-    private static void sendEmailNativo(String toEmail, String code) {
+    // Cliente SMTP utilizando JavaMail
+    private static void sendEmailHtml(String toEmail, String code, String name) {
         String host = System.getenv("SMTP_HOST");
         String portStr = System.getenv("SMTP_PORT");
         String user = System.getenv("SMTP_USER");
@@ -335,80 +338,63 @@ public class VotacaoFilmeServer {
             return; // Permanece operando apenas em simulação de console
         }
 
-        int port = Integer.parseInt(portStr);
         new Thread(() -> {
             try {
-                System.out.println("[SMTP] Enviando e-mail para " + toEmail + " via " + host + "...");
-                Socket socket;
-                if (port == 465) {
-                    socket = SSLSocketFactory.getDefault().createSocket(host, port);
+                System.out.println("[SMTP] Preparando envio de e-mail via JavaMail para " + toEmail + "...");
+                
+                Properties props = new Properties();
+                props.put("mail.smtp.host", host);
+                props.put("mail.smtp.port", portStr);
+                props.put("mail.smtp.auth", "true");
+                
+                // Suporte inteligente a STARTTLS e SSL
+                if ("465".equals(portStr)) {
+                    props.put("mail.smtp.ssl.enable", "true");
+                    props.put("mail.smtp.socketFactory.port", "465");
+                    props.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
                 } else {
-                    socket = new Socket(host, port);
+                    props.put("mail.smtp.starttls.enable", "true");
                 }
 
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-                     OutputStreamWriter writer = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8)) {
+                Session session = Session.getInstance(props, new Authenticator() {
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(user, pass);
+                    }
+                });
 
-                    readResponse(reader);
-                    
-                    writeCommand(writer, "EHLO " + host);
-                    readResponse(reader);
-                    
-                    writeCommand(writer, "AUTH LOGIN");
-                    readResponse(reader);
-                    
-                    writeCommand(writer, Base64.getEncoder().encodeToString(user.getBytes(StandardCharsets.UTF_8)));
-                    readResponse(reader);
-                    
-                    writeCommand(writer, Base64.getEncoder().encodeToString(pass.getBytes(StandardCharsets.UTF_8)));
-                    readResponse(reader);
-                    
-                    writeCommand(writer, "MAIL FROM:<" + from + ">");
-                    readResponse(reader);
-                    
-                    writeCommand(writer, "RCPT TO:<" + toEmail + ">");
-                    readResponse(reader);
-                    
-                    writeCommand(writer, "DATA");
-                    readResponse(reader);
-                    
-                    writer.write("From: CineVoto <" + from + ">\r\n");
-                    writer.write("To: " + toEmail + "\r\n");
-                    writer.write("Subject: Código de Verificação - CineVoto\r\n");
-                    writer.write("Content-Type: text/plain; charset=UTF-8\r\n\r\n");
-                    writer.write("Olá!\r\n\r\n");
-                    writer.write("Seu código de verificação para acessar o CineVoto é: " + code + "\r\n\r\n");
-                    writer.write("Este código expira em 10 minutos.\r\n\r\n");
-                    writer.write("Aproveite o seu filme! 🎬🍿\r\n.\r\n");
-                    writer.flush();
-                    
-                    readResponse(reader);
-                    
-                    writeCommand(writer, "QUIT");
-                    readResponse(reader);
-                }
-                socket.close();
+                Message message = new MimeMessage(session);
+                message.setFrom(new InternetAddress(from, "CineVoto"));
+                message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
+                message.setSubject("Seu código de acesso - CineVoto");
+
+                String htmlContent = "<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f4f4f9; padding: 20px; border-radius: 8px;\">"
+                        + "<div style=\"background-color: #6366f1; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;\">"
+                        + "<h1 style=\"color: #ffffff; margin: 0;\">CineVoto 🎬</h1>"
+                        + "</div>"
+                        + "<div style=\"background-color: #ffffff; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);\">"
+                        + "<h2 style=\"color: #333333; margin-top: 0;\">Olá, " + (name != null && !name.trim().isEmpty() ? name : "Cinéfilo") + "!</h2>"
+                        + "<p style=\"color: #555555; font-size: 16px; line-height: 1.5;\">Você solicitou um código de verificação para acessar sua sala no CineVoto. Utilize o código abaixo para continuar:</p>"
+                        + "<div style=\"background-color: #f8fafc; border: 2px dashed #cbd5e1; text-align: center; padding: 20px; margin: 25px 0; border-radius: 8px;\">"
+                        + "<span style=\"font-size: 32px; font-weight: bold; color: #4f46e5; letter-spacing: 4px;\">" + code + "</span>"
+                        + "</div>"
+                        + "<p style=\"color: #555555; font-size: 14px;\">Este código é válido por <strong>10 minutos</strong>. Se você não solicitou este código, por favor, ignore este e-mail.</p>"
+                        + "<br>"
+                        + "<p style=\"color: #555555; font-size: 16px;\">Bom filme e divirta-se! 🍿</p>"
+                        + "</div>"
+                        + "<div style=\"text-align: center; margin-top: 20px; color: #94a3b8; font-size: 12px;\">"
+                        + "&copy; 2026 CineVoto App"
+                        + "</div>"
+                        + "</div>";
+
+                message.setContent(htmlContent, "text/html; charset=utf-8");
+
+                Transport.send(message);
                 System.out.println("[SMTP] E-mail enviado com sucesso para: " + toEmail);
             } catch (Exception e) {
-                System.err.println("[SMTP] Erro ao enviar e-mail: " + e.getMessage());
+                System.err.println("[SMTP] Erro ao enviar e-mail via JavaMail: " + e.getMessage());
+                e.printStackTrace();
             }
         }).start();
-    }
-
-    private static void writeCommand(OutputStreamWriter writer, String cmd) throws IOException {
-        writer.write(cmd + "\r\n");
-        writer.flush();
-    }
-
-    private static void readResponse(BufferedReader reader) throws IOException {
-        String line = reader.readLine();
-        while (line != null) {
-            if (line.length() >= 4 && line.charAt(3) == '-') {
-                line = reader.readLine();
-            } else {
-                break;
-            }
-        }
     }
 
     // POST /api/solicitar-codigo
@@ -458,8 +444,8 @@ public class VotacaoFilmeServer {
                     System.out.println("CÓDIGO DE VERIFICAÇÃO: " + code);
                     System.out.println("=======================================================\n");
 
-                    // Tenta enviar o e-mail real via SMTP nativo
-                    sendEmailNativo(email, code);
+                    // Tenta enviar o e-mail real via JavaMail
+                    sendEmailHtml(email, code, name);
 
                     sendJsonResponse(exchange, 200, "{\"success\":true,\"message\":\"Código de verificação gerado.\"}");
                 } catch (Exception e) {
