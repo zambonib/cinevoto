@@ -105,6 +105,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return voterId;
     }
 
+    // Controle de exibição do Loading
+    function showLoading(show) {
+        if (loadingSpinner) {
+            if (show) {
+                loadingSpinner.classList.remove('hidden');
+            } else {
+                loadingSpinner.classList.add('hidden');
+            }
+        }
+    }
+
     // Inicialização da Tela
     function init() {
         if (!boardOwner) {
