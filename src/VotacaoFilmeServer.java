@@ -9,6 +9,7 @@ import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,18 +18,32 @@ import java.util.regex.Pattern;
 
 public class VotacaoFilmeServer {
 
-    private static final String DATA_FILE = "cinevoto_data.txt";
+    private static final String DATA_DIR = "data";
 
-    // Listas thread-safe para suportar acessos concorrentes
-    private static final List<String> movies = new CopyOnWriteArrayList<>();
-    private static final List<AtomicInteger> votes = new CopyOnWriteArrayList<>();
-    private static final List<String> watched = new CopyOnWriteArrayList<>();
-    // IDs de navegadores/usuários que já votaram na rodada ativa
-    private static final List<String> votedIds = new CopyOnWriteArrayList<>();
+    // Representação do estado isolado de cada sala/usuário
+    static class BoardState {
+        final String ownerEmail;
+        String ownerName;
+        final List<String> movies = new CopyOnWriteArrayList<>();
+        final List<AtomicInteger> votes = new CopyOnWriteArrayList<>();
+        final List<String> watched = new CopyOnWriteArrayList<>();
+        final List<String> votedIds = new CopyOnWriteArrayList<>();
+
+        BoardState(String ownerEmail, String ownerName) {
+            this.ownerEmail = ownerEmail;
+            this.ownerName = ownerName;
+        }
+    }
+
+    // Mapa em memória com cache das salas carregadas
+    private static final ConcurrentHashMap<String, BoardState> boards = new ConcurrentHashMap<>();
 
     public static void main(String[] args) throws IOException {
-        // Carrega dados persistidos ao iniciar
-        loadData();
+        // Assegura que o diretório de dados exista
+        File folder = new File(DATA_DIR);
+        if (!folder.exists()) {
+            folder.mkdir();
+        }
 
         int port = 8080;
         
@@ -51,6 +66,7 @@ public class VotacaoFilmeServer {
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
         // Endpoints de API
+        server.createContext("/api/login", new LoginHandler());
         server.createContext("/api/estado", new EstadoHandler());
         server.createContext("/api/iniciar", new IniciarHandler());
         server.createContext("/api/votar", new VotarHandler());
@@ -64,7 +80,7 @@ public class VotacaoFilmeServer {
         server.setExecutor(Executors.newFixedThreadPool(10));
         
         System.out.println("=================================================");
-        System.out.println(" Servidor CineVoto ativo na porta " + port);
+        System.out.println(" Servidor CineVoto SaaS ativo na porta " + port);
         System.out.println(" Acesse: http://localhost:" + port);
         System.out.println(" Pressione Ctrl+C para encerrar.");
         System.out.println("=================================================");
@@ -72,26 +88,34 @@ public class VotacaoFilmeServer {
         server.start();
     }
 
-    // Persistência: Carrega os dados do arquivo cinevoto_data.txt
-    private static synchronized void loadData() {
-        File file = new File(DATA_FILE);
+    // Converte o e-mail para um nome de arquivo de texto seguro
+    private static String getBoardFilename(String email) {
+        String safeEmail = email.toLowerCase().replaceAll("[^a-z0-9]", "_");
+        return DATA_DIR + "/usr_" + safeEmail + ".txt";
+    }
+
+    // Persistência: Carrega os dados de um usuário específico
+    private static synchronized BoardState loadBoardData(String email) {
+        String filename = getBoardFilename(email);
+        File file = new File(filename);
         if (!file.exists()) {
-            return;
+            return null;
         }
+
+        BoardState board = new BoardState(email, "Usuário");
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
             String line;
             String section = "";
-            movies.clear();
-            votes.clear();
-            watched.clear();
-            votedIds.clear();
-
+            
             while ((line = br.readLine()) != null) {
                 line = line.trim();
                 if (line.isEmpty()) continue;
 
-                if (line.equals("[ACTIVE]")) {
+                if (line.equals("[METADATA]")) {
+                    section = "METADATA";
+                    continue;
+                } else if (line.equals("[ACTIVE]")) {
                     section = "ACTIVE";
                     continue;
                 } else if (line.equals("[WATCHED]")) {
@@ -102,72 +126,89 @@ public class VotacaoFilmeServer {
                     continue;
                 }
 
-                if ("ACTIVE".equals(section)) {
+                if ("METADATA".equals(section)) {
+                    if (line.startsWith("name=")) {
+                        board.ownerName = line.substring(5).trim();
+                    }
+                } else if ("ACTIVE".equals(section)) {
                     String[] parts = line.split(";");
                     if (parts.length == 2) {
-                        movies.add(parts[0]);
-                        votes.add(new AtomicInteger(Integer.parseInt(parts[1])));
+                        board.movies.add(parts[0]);
+                        board.votes.add(new AtomicInteger(Integer.parseInt(parts[1])));
                     }
                 } else if ("WATCHED".equals(section)) {
-                    watched.add(line);
+                    board.watched.add(line);
                 } else if ("VOTERS".equals(section)) {
-                    votedIds.add(line);
+                    board.votedIds.add(line);
                 }
             }
-            System.out.println("Dados carregados com sucesso de " + DATA_FILE);
+            boards.put(email.toLowerCase(), board);
+            System.out.println("Dados carregados com sucesso do board: " + email);
+            return board;
         } catch (IOException e) {
-            System.err.println("Erro ao carregar dados: " + e.getMessage());
+            System.err.println("Erro ao carregar dados do board: " + e.getMessage());
+            return null;
         } catch (NumberFormatException e) {
-            System.err.println("Erro de formato nos dados persistidos: " + e.getMessage());
+            System.err.println("Erro de formato nos dados persistidos do board: " + e.getMessage());
+            return null;
         }
     }
 
-    // Persistência: Salva os dados no arquivo cinevoto_data.txt
-    private static synchronized void saveData() {
-        try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(DATA_FILE), StandardCharsets.UTF_8))) {
+    // Persistência: Salva os dados de um usuário específico
+    private static synchronized void saveBoardData(BoardState board) {
+        String filename = getBoardFilename(board.ownerEmail);
+        try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), StandardCharsets.UTF_8))) {
+            bw.write("[METADATA]");
+            bw.newLine();
+            bw.write("name=" + board.ownerName);
+            bw.newLine();
+
             bw.write("[ACTIVE]");
             bw.newLine();
-            for (int i = 0; i < movies.size(); i++) {
-                bw.write(movies.get(i) + ";" + votes.get(i).get());
+            for (int i = 0; i < board.movies.size(); i++) {
+                bw.write(board.movies.get(i) + ";" + board.votes.get(i).get());
                 bw.newLine();
             }
             
             bw.write("[VOTERS]");
             bw.newLine();
-            for (String id : votedIds) {
+            for (String id : board.votedIds) {
                 bw.write(id);
                 bw.newLine();
             }
 
             bw.write("[WATCHED]");
             bw.newLine();
-            for (String watchedMovie : watched) {
+            for (String watchedMovie : board.watched) {
                 bw.write(watchedMovie);
                 bw.newLine();
             }
-            System.out.println("Dados salvos em " + DATA_FILE);
+            System.out.println("Dados salvos em " + filename);
         } catch (IOException e) {
-            System.err.println("Erro ao salvar dados: " + e.getMessage());
+            System.err.println("Erro ao salvar dados do board: " + e.getMessage());
         }
     }
 
-    // Retorna o estado completo da aplicação em JSON, indicando se o voterId do cliente já votou
-    private static String getStateJson(String voterId) {
+    // Retorna o estado de uma sala específica em formato JSON
+    private static String getStateJson(BoardState board, String voterId) {
         StringBuilder sb = new StringBuilder("{");
         
-        // Verifica se o ID do cliente já votou
-        boolean hasVoted = !voterId.isEmpty() && votedIds.contains(voterId);
+        sb.append(String.format("\"ownerName\":\"%s\",", board.ownerName.replace("\"", "\\\"")));
+        sb.append(String.format("\"ownerEmail\":\"%s\",", board.ownerEmail.replace("\"", "\\\"")));
+        
+        // Verifica se o voterId do visitante já votou nesta sala
+        boolean hasVoted = !voterId.isEmpty() && board.votedIds.contains(voterId);
         sb.append(String.format("\"usuarioVotou\":%b,", hasVoted));
 
         // Filmes ativos
         sb.append("\"ativos\":[");
-        for (int i = 0; i < movies.size(); i++) {
+        for (int i = 0; i < board.movies.size(); i++) {
             sb.append(String.format("{\"id\":%d,\"titulo\":\"%s\",\"votos\":%d}",
                     i, 
-                    movies.get(i).replace("\\", "\\\\").replace("\"", "\\\""), 
-                    votes.get(i).get()
+                    board.movies.get(i).replace("\\", "\\\\").replace("\"", "\\\""), 
+                    board.votes.get(i).get()
             ));
-            if (i < movies.size() - 1) {
+            if (i < board.movies.size() - 1) {
                 sb.append(",");
             }
         }
@@ -175,9 +216,9 @@ public class VotacaoFilmeServer {
         
         // Histórico de assistidos
         sb.append("\"assistidos\":[");
-        for (int i = 0; i < watched.size(); i++) {
-            sb.append(String.format("\"%s\"", watched.get(i).replace("\\", "\\\\").replace("\"", "\\\"")));
-            if (i < watched.size() - 1) {
+        for (int i = 0; i < board.watched.size(); i++) {
+            sb.append(String.format("\"%s\"", board.watched.get(i).replace("\\", "\\\\").replace("\"", "\\\"")));
+            if (i < board.watched.size() - 1) {
                 sb.append(",");
             }
         }
@@ -213,7 +254,7 @@ public class VotacaoFilmeServer {
         return false;
     }
 
-    // Extrai o voterId da URL de query (GET)
+    // Extrai o voterId da URL
     private static String getVoterIdFromQuery(HttpExchange exchange) {
         String query = exchange.getRequestURI().getQuery();
         if (query != null) {
@@ -226,22 +267,121 @@ public class VotacaoFilmeServer {
         return "";
     }
 
-    // GET /api/estado
+    // Extrai o proprietário da sala da URL (owner)
+    private static String getOwnerFromQuery(HttpExchange exchange) {
+        String query = exchange.getRequestURI().getQuery();
+        if (query != null) {
+            Pattern p = Pattern.compile("owner=([^&]+)");
+            Matcher m = p.matcher(query);
+            if (m.find()) {
+                try {
+                    return java.net.URLDecoder.decode(m.group(1).trim(), StandardCharsets.UTF_8.toString());
+                } catch (UnsupportedEncodingException e) {
+                    return m.group(1).trim();
+                }
+            }
+        }
+        return "";
+    }
+
+    // Resolve a sala a ser utilizada no request
+    private static BoardState resolveBoard(HttpExchange exchange) {
+        String owner = getOwnerFromQuery(exchange);
+        if (owner.isEmpty()) {
+            return null;
+        }
+        
+        // Tenta obter do cache em memória
+        BoardState board = boards.get(owner.toLowerCase());
+        if (board == null) {
+            // Tenta carregar do arquivo
+            board = loadBoardData(owner);
+        }
+        return board;
+    }
+
+    // POST /api/login
+    static class LoginHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if (handleOptions(exchange)) return;
+
+            if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                try {
+                    String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                    String name = "";
+                    String email = "";
+
+                    Pattern pName = Pattern.compile("\"name\"\\s*:\\s*\"([^\"]+)\"");
+                    Matcher mName = pName.matcher(body);
+                    if (mName.find()) {
+                        name = mName.group(1).trim();
+                    }
+
+                    Pattern pEmail = Pattern.compile("\"email\"\\s*:\\s*\"([^\"]+)\"");
+                    Matcher mEmail = pEmail.matcher(body);
+                    if (mEmail.find()) {
+                        email = mEmail.group(1).trim();
+                    }
+
+                    if (email.isEmpty()) {
+                        sendJsonResponse(exchange, 400, "{\"error\":\"E-mail é obrigatório para cadastro.\"}");
+                        return;
+                    }
+
+                    // Tenta obter ou criar a sala do usuário
+                    BoardState board = boards.get(email.toLowerCase());
+                    if (board == null) {
+                        board = loadBoardData(email);
+                    }
+
+                    if (board == null) {
+                        // Novo usuário, cria nova sala
+                        if (name.isEmpty()) {
+                            name = "Cinema Club";
+                        }
+                        board = new BoardState(email, name);
+                        saveBoardData(board);
+                        boards.put(email.toLowerCase(), board);
+                        System.out.println("Criada nova sala para: " + email);
+                    } else if (!name.isEmpty() && !name.equals(board.ownerName)) {
+                        // Atualiza o nome da sala caso tenha mudado
+                        board.ownerName = name;
+                        saveBoardData(board);
+                    }
+
+                    String voterId = getVoterIdFromQuery(exchange);
+                    sendJsonResponse(exchange, 200, getStateJson(board, voterId));
+                } catch (Exception e) {
+                    sendJsonResponse(exchange, 500, "{\"error\":\"Erro ao processar login.\"}");
+                }
+            } else {
+                sendJsonResponse(exchange, 405, "{\"error\":\"Método não permitido. Use POST.\"}");
+            }
+        }
+    }
+
+    // GET /api/estado?owner=email&voterId=id
     static class EstadoHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             if (handleOptions(exchange)) return;
             
             if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                BoardState board = resolveBoard(exchange);
+                if (board == null) {
+                    sendJsonResponse(exchange, 404, "{\"error\":\"Sala de votação não encontrada.\"}");
+                    return;
+                }
                 String voterId = getVoterIdFromQuery(exchange);
-                sendJsonResponse(exchange, 200, getStateJson(voterId));
+                sendJsonResponse(exchange, 200, getStateJson(board, voterId));
             } else {
                 sendJsonResponse(exchange, 405, "{\"error\":\"Método não permitido. Use GET.\"}");
             }
         }
     }
 
-    // POST /api/iniciar
+    // POST /api/iniciar?owner=email
     static class IniciarHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
@@ -249,6 +389,12 @@ public class VotacaoFilmeServer {
 
             if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                 try {
+                    BoardState board = resolveBoard(exchange);
+                    if (board == null) {
+                        sendJsonResponse(exchange, 404, "{\"error\":\"Sala de votação não encontrada.\"}");
+                        return;
+                    }
+
                     String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
                     List<String> newMovies = new ArrayList<>();
 
@@ -278,7 +424,7 @@ public class VotacaoFilmeServer {
 
                     // Validação de negócio 2: Nenhum pode ser repetido nos assistidos
                     for (String movie : newMovies) {
-                        for (String w : watched) {
+                        for (String w : board.watched) {
                             if (w.equalsIgnoreCase(movie)) {
                                 sendJsonResponse(exchange, 400, String.format("{\"error\":\"O filme '%s' já foi assistido anteriormente! Escolha outro.\"}", movie));
                                 return;
@@ -286,19 +432,19 @@ public class VotacaoFilmeServer {
                         }
                     }
 
-                    // Inicializa a nova rodada e limpa os IDs votantes da rodada anterior
-                    movies.clear();
-                    votes.clear();
-                    votedIds.clear();
+                    // Inicializa a nova rodada na sala correspondente
+                    board.movies.clear();
+                    board.votes.clear();
+                    board.votedIds.clear();
                     
                     for (String m : newMovies) {
-                        movies.add(m);
-                        votes.add(new AtomicInteger(0));
+                        board.movies.add(m);
+                        board.votes.add(new AtomicInteger(0));
                     }
 
-                    saveData();
+                    saveBoardData(board);
                     String voterId = getVoterIdFromQuery(exchange);
-                    sendJsonResponse(exchange, 200, getStateJson(voterId));
+                    sendJsonResponse(exchange, 200, getStateJson(board, voterId));
                 } catch (Exception e) {
                     sendJsonResponse(exchange, 500, "{\"error\":\"Erro ao iniciar rodada de votação.\"}");
                 }
@@ -308,7 +454,7 @@ public class VotacaoFilmeServer {
         }
     }
 
-    // POST /api/votar
+    // POST /api/votar?owner=email
     static class VotarHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
@@ -316,42 +462,47 @@ public class VotacaoFilmeServer {
 
             if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                 try {
+                    BoardState board = resolveBoard(exchange);
+                    if (board == null) {
+                        sendJsonResponse(exchange, 404, "{\"error\":\"Sala de votação não encontrada.\"}");
+                        return;
+                    }
+
                     String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
                     int id = -1;
                     String voterId = "";
 
-                    // Parse do id do filme: {"id": X}
+                    // Parse do id do filme
                     Pattern pId = Pattern.compile("\"id\"\\s*:\\s*(\\d+)");
                     Matcher mId = pId.matcher(body);
                     if (mId.find()) {
                         id = Integer.parseInt(mId.group(1));
                     }
 
-                    // Parse do voterId do cliente: {"voterId": "..."}
+                    // Parse do voterId
                     Pattern pVoter = Pattern.compile("\"voterId\"\\s*:\\s*\"([^\"]+)\"");
                     Matcher mVoter = pVoter.matcher(body);
                     if (mVoter.find()) {
                         voterId = mVoter.group(1).trim();
                     }
 
-                    // Validação de segurança
                     if (voterId.isEmpty()) {
                         sendJsonResponse(exchange, 400, "{\"error\":\"Identificação do usuário (voterId) não fornecida.\"}");
                         return;
                     }
 
                     // Validação de negócio: Apenas 1 voto por Voter ID
-                    if (votedIds.contains(voterId)) {
+                    if (board.votedIds.contains(voterId)) {
                         sendJsonResponse(exchange, 400, "{\"error\":\"Você já votou nesta rodada!\"}");
                         return;
                     }
 
-                    if (id >= 0 && id < votes.size()) {
-                        votes.get(id).incrementAndGet();
-                        votedIds.add(voterId); // Registra o ID do navegador
+                    if (id >= 0 && id < board.votes.size()) {
+                        board.votes.get(id).incrementAndGet();
+                        board.votedIds.add(voterId); // Registra o ID do visitante
                         
-                        saveData();
-                        sendJsonResponse(exchange, 200, getStateJson(voterId));
+                        saveBoardData(board);
+                        sendJsonResponse(exchange, 200, getStateJson(board, voterId));
                     } else {
                         sendJsonResponse(exchange, 400, "{\"error\":\"ID de filme inválido.\"}");
                     }
@@ -364,14 +515,20 @@ public class VotacaoFilmeServer {
         }
     }
 
-    // POST /api/finalizar
+    // POST /api/finalizar?owner=email
     static class FinalizarHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             if (handleOptions(exchange)) return;
 
             if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-                if (movies.isEmpty()) {
+                BoardState board = resolveBoard(exchange);
+                if (board == null) {
+                    sendJsonResponse(exchange, 404, "{\"error\":\"Sala de votação não encontrada.\"}");
+                    return;
+                }
+
+                if (board.movies.isEmpty()) {
                     sendJsonResponse(exchange, 400, "{\"error\":\"Nenhuma votação ativa para finalizar.\"}");
                     return;
                 }
@@ -379,8 +536,8 @@ public class VotacaoFilmeServer {
                 // Determinar o filme vencedor (primeiro em caso de empate)
                 int maxVotes = -1;
                 int winnerIdx = -1;
-                for (int i = 0; i < votes.size(); i++) {
-                    int v = votes.get(i).get();
+                for (int i = 0; i < board.votes.size(); i++) {
+                    int v = board.votes.get(i).get();
                     if (v > maxVotes) {
                         maxVotes = v;
                         winnerIdx = i;
@@ -388,16 +545,16 @@ public class VotacaoFilmeServer {
                 }
 
                 if (winnerIdx != -1) {
-                    String winner = movies.get(winnerIdx);
-                    watched.add(winner); // Move para a lista de assistidos
+                    String winner = board.movies.get(winnerIdx);
+                    board.watched.add(winner); // Move para a lista de assistidos
                     
-                    // Limpa filmes ativos e lista de votantes para a próxima rodada
-                    movies.clear();      
-                    votes.clear();
-                    votedIds.clear();
+                    // Limpa filmes ativos e lista de votantes
+                    board.movies.clear();      
+                    board.votes.clear();
+                    board.votedIds.clear();
 
-                    saveData();
-                    sendJsonResponse(exchange, 200, getStateJson(""));
+                    saveBoardData(board);
+                    sendJsonResponse(exchange, 200, getStateJson(board, ""));
                 } else {
                     sendJsonResponse(exchange, 500, "{\"error\":\"Não foi possível determinar o vencedor.\"}");
                 }
@@ -407,21 +564,26 @@ public class VotacaoFilmeServer {
         }
     }
 
-    // POST /api/reset
+    // POST /api/reset?owner=email
     static class ResetHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             if (handleOptions(exchange)) return;
 
             if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-                // Limpa apenas a rodada ativa. A lista de filmes assistidos é preservada!
-                movies.clear();
-                votes.clear();
-                votedIds.clear();
+                BoardState board = resolveBoard(exchange);
+                if (board == null) {
+                    sendJsonResponse(exchange, 404, "{\"error\":\"Sala de votação não encontrada.\"}");
+                    return;
+                }
 
-                saveData(); // Salva o novo estado mantendo o histórico de assistidos
+                board.movies.clear();
+                board.votes.clear();
+                board.votedIds.clear();
 
-                sendJsonResponse(exchange, 200, getStateJson(""));
+                saveBoardData(board); // Salva mantendo o histórico de assistidos
+
+                sendJsonResponse(exchange, 200, getStateJson(board, ""));
             } else {
                 sendJsonResponse(exchange, 405, "{\"error\":\"Método não permitido. Use POST.\"}");
             }

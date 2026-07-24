@@ -1,16 +1,23 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Endpoints da API
+    const API_LOGIN = '/api/login';
     const API_ESTADO = '/api/estado';
     const API_INICIAR = '/api/iniciar';
     const API_VOTAR = '/api/votar';
     const API_FINALIZAR = '/api/finalizar';
     const API_RESET = '/api/reset';
 
-    // Elementos do DOM
-    const setupSection = document.getElementById('setup-section');
-    const votingSection = document.getElementById('voting-section');
+    // Elementos da Interface
+    const landingSection = document.getElementById('landing-section');
+    const appLayout = document.getElementById('app-layout');
     const loadingSpinner = document.getElementById('loading-spinner');
     
+    // Formulários
+    const loginForm = document.getElementById('login-form');
+    const loginNameInput = document.getElementById('login-name');
+    const loginEmailInput = document.getElementById('login-email');
+    
+    const setupSection = document.getElementById('setup-section');
     const setupForm = document.getElementById('setup-movies-form');
     const movieInputs = [
         document.getElementById('movie-1-input'),
@@ -18,10 +25,27 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('movie-3-input')
     ];
     
+    // Área de Visitante
+    const visitorWaitSection = document.getElementById('visitor-wait-section');
+    const votingSection = document.getElementById('voting-section');
+    
+    // Painel do Usuário / Sala
+    const boardOwnerName = document.getElementById('board-owner-name');
+    const boardOwnerEmail = document.getElementById('board-owner-email');
+    const myBoardBtn = document.getElementById('my-board-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    
+    // Controles Administrativos
+    const adminControlsCard = document.getElementById('admin-controls-card');
     const activeControls = document.getElementById('active-controls');
     const finishRoundBtn = document.getElementById('finish-round-btn');
     const resetAllBtn = document.getElementById('reset-all-btn');
     
+    // Compartilhamento
+    const shareLinkInput = document.getElementById('share-link-input');
+    const copyLinkBtn = document.getElementById('copy-link-btn');
+    
+    // Listas e Destaques
     const moviesList = document.getElementById('movies-list');
     const totalVotesBadge = document.getElementById('total-votes-badge');
     const watchedList = document.getElementById('watched-list');
@@ -31,30 +55,70 @@ document.addEventListener('DOMContentLoaded', () => {
     const winnerStats = document.getElementById('winner-stats');
     const votedAlert = document.getElementById('voted-alert');
 
-    // Estado local da aplicação
+    // Roteamento: lê ?board=email da URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const boardOwner = urlParams.get('board');
+
+    // Dados do usuário logado localmente
+    const localUserEmail = localStorage.getItem('cinevoto_user_email');
+    const localUserName = localStorage.getItem('cinevoto_user_name');
+
+    // Estado da Sala Atual
     let state = {
+        ownerName: 'Carregando...',
+        ownerEmail: '',
         ativos: [],
-        assistidos: []
+        assistidos: [],
+        usuarioVotou: false
     };
 
     // Gera ou obtém o identificador exclusivo deste navegador
     function getVoterId() {
         let voterId = localStorage.getItem('cinevoto_voter_id');
         if (!voterId) {
-            // Gera um ID único aleatório simples
             voterId = 'usr_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
             localStorage.setItem('cinevoto_voter_id', voterId);
         }
         return voterId;
     }
 
-    // Busca o estado completo do backend enviando o ID do usuário
+    // Gerenciador de inicialização do app
+    function init() {
+        if (!boardOwner) {
+            // Se não há uma sala na URL
+            if (localUserEmail) {
+                // Redireciona automaticamente para a sala do usuário logado
+                window.location.search = `?board=${encodeURIComponent(localUserEmail)}`;
+            } else {
+                // Senão, exibe a Landing Page de cadastro/login
+                landingSection.classList.remove('hidden');
+                appLayout.classList.add('hidden');
+                loadingSpinner.classList.add('hidden');
+            }
+        } else {
+            // Se há uma sala na URL, carrega o estado dela
+            landingSection.classList.add('hidden');
+            appLayout.classList.remove('hidden');
+            loadState();
+        }
+    }
+
+    // Busca o estado completo do proprietário da sala especificada
     async function loadState() {
         showLoading(true);
         try {
             const voterId = getVoterId();
-            const response = await fetch(`${API_ESTADO}?voterId=${voterId}`);
-            if (!response.ok) throw new Error('Falha ao conectar com o servidor.');
+            const response = await fetch(`${API_ESTADO}?owner=${encodeURIComponent(boardOwner)}&voterId=${voterId}`);
+            
+            if (!response.ok) {
+                if (response.status === 404) {
+                    alert('Sala de votação não encontrada. Redirecionando para a página inicial.');
+                    logout();
+                    return;
+                }
+                throw new Error('Falha ao conectar com o servidor.');
+            }
+
             const data = await response.json();
             updateUI(data);
         } catch (error) {
@@ -70,22 +134,49 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isLoading) {
             loadingSpinner.classList.remove('hidden');
             setupSection.classList.add('hidden');
+            visitorWaitSection.classList.add('hidden');
             votingSection.classList.add('hidden');
         } else {
             loadingSpinner.classList.add('hidden');
         }
     }
 
-    // Atualiza toda a interface com base no estado recebido
+    // Atualiza toda a interface com base no estado recebido da sala
     function updateUI(newState) {
         state = newState;
+
+        // Atualiza cabeçalhos da sala
+        boardOwnerName.textContent = `Sala de ${state.ownerName}`;
+        boardOwnerEmail.textContent = state.ownerEmail;
+
+        // Configura link de compartilhamento
+        const shareLink = `${window.location.origin}${window.location.pathname}?board=${encodeURIComponent(state.ownerEmail)}`;
+        shareLinkInput.value = shareLink;
+
+        // Verifica permissão (se o usuário logado é o proprietário da sala)
+        const isOwner = localUserEmail && localUserEmail.toLowerCase() === state.ownerEmail.toLowerCase();
+
+        // Gerencia exibição do botão "Minha Sala"
+        if (localUserEmail && !isOwner) {
+            myBoardBtn.classList.remove('hidden');
+        } else {
+            myBoardBtn.classList.add('hidden');
+        }
 
         // Renderiza o histórico de filmes assistidos (canto direito)
         renderWatchedList();
 
-        // Determina qual seção exibir no painel central (cadastro ou votação)
+        // Gerencia painel administrativo
+        if (isOwner) {
+            adminControlsCard.classList.remove('hidden');
+        } else {
+            adminControlsCard.classList.add('hidden');
+        }
+
+        // Determina o fluxo da tela central (Cadastro ou Votação)
         if (state.ativos && state.ativos.length > 0) {
             setupSection.classList.add('hidden');
+            visitorWaitSection.classList.add('hidden');
             votingSection.classList.remove('hidden');
             activeControls.classList.remove('hidden');
 
@@ -99,9 +190,16 @@ document.addEventListener('DOMContentLoaded', () => {
             renderVotingSection();
         } else {
             votingSection.classList.add('hidden');
-            setupSection.classList.remove('hidden');
             activeControls.classList.add('hidden');
             votedAlert.classList.add('hidden');
+
+            if (isOwner) {
+                setupSection.classList.remove('hidden');
+                visitorWaitSection.classList.add('hidden');
+            } else {
+                setupSection.classList.add('hidden');
+                visitorWaitSection.classList.remove('hidden'); // Visitante aguarda
+            }
         }
     }
 
@@ -186,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
             watchedList.innerHTML = `
                 <div class="watched-empty">
                     <i class="fa-solid fa-ghost"></i>
-                    <p>Nenhum filme assistido ainda. Que tal iniciar uma rodada?</p>
+                    <p>Nenhum filme assistido ainda nesta sala.</p>
                 </div>
             `;
             return;
@@ -203,7 +301,38 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Envia requisição de voto ao servidor contendo o Voter ID
+    // Cadastro / Login na Landing Page
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = loginNameInput.value.trim();
+        const email = loginEmailInput.value.trim();
+        
+        if (!name || !email) return;
+
+        try {
+            showLoading(true);
+            const response = await fetch(`${API_LOGIN}?voterId=${getVoterId()}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name, email: email })
+            });
+
+            if (!response.ok) throw new Error('Falha ao efetuar login.');
+            const data = await response.json();
+
+            // Salva credenciais locais
+            localStorage.setItem('cinevoto_user_email', email);
+            localStorage.setItem('cinevoto_user_name', name);
+
+            // Redireciona para o link da sala
+            window.location.search = `?board=${encodeURIComponent(email)}`;
+        } catch (error) {
+            alert('Não foi possível entrar na sala. Tente novamente.');
+            showLoading(false);
+        }
+    });
+
+    // Envia requisição de voto ao servidor contendo o Voter ID e o proprietário da sala
     async function castVote(id) {
         try {
             // Animação de clique imediata
@@ -213,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => card.classList.remove('pulse-highlight'), 500);
             }
 
-            const response = await fetch(API_VOTAR, {
+            const response = await fetch(`${API_VOTAR}?owner=${encodeURIComponent(boardOwner)}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: id, voterId: getVoterId() })
@@ -227,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Submete o formulário dos 3 filmes iniciais
+    // Submete o formulário dos 3 filmes iniciais (apenas dono da sala)
     setupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -240,8 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             showLoading(true);
-            const voterId = getVoterId();
-            const response = await fetch(`${API_INICIAR}?voterId=${voterId}`, {
+            const response = await fetch(`${API_INICIAR}?owner=${encodeURIComponent(boardOwner)}&voterId=${getVoterId()}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(moviesArray)
@@ -250,7 +378,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             
             if (!response.ok) {
-                // Se o backend retornar erro (ex: filme já assistido)
                 alert(data.error || 'Erro ao iniciar votação.');
                 showLoading(false);
                 return;
@@ -265,11 +392,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Finaliza a rodada e declara o vencedor
+    // Finaliza a rodada e declara o vencedor (apenas dono da sala)
     finishRoundBtn.addEventListener('click', async () => {
         if (state.ativos.length === 0) return;
 
-        // Determinar vencedor localmente para mostrar no alerta
         let maxVotes = -1;
         let winnerName = "";
         state.ativos.forEach(m => {
@@ -287,7 +413,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             showLoading(true);
-            const response = await fetch(API_FINALIZAR, {
+            const response = await fetch(`${API_FINALIZAR}?owner=${encodeURIComponent(boardOwner)}`, {
                 method: 'POST'
             });
 
@@ -295,7 +421,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             
             alert(`Rodada finalizada com sucesso! Bom filme! 🎬🍿`);
-            // Limpa o voto no LocalStorage para a próxima rodada
             updateUI(data);
         } catch (error) {
             alert('Erro ao finalizar a votação.');
@@ -303,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Cancela a rodada ativa (mantém o histórico de assistidos)
+    // Cancela a rodada ativa (apenas dono da sala)
     resetAllBtn.addEventListener('click', async () => {
         if (!confirm('Tem certeza de que deseja cancelar a rodada de votação atual? O histórico de filmes assistidos será mantido.')) {
             return;
@@ -311,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             showLoading(true);
-            const response = await fetch(API_RESET, {
+            const response = await fetch(`${API_RESET}?owner=${encodeURIComponent(boardOwner)}`, {
                 method: 'POST'
             });
 
@@ -325,12 +450,51 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Copiar link de compartilhamento
+    copyLinkBtn.addEventListener('click', () => {
+        shareLinkInput.select();
+        shareLinkInput.setSelectionRange(0, 99999); // Para mobile
+        navigator.clipboard.writeText(shareLinkInput.value)
+            .then(() => {
+                const origIcon = copyLinkBtn.innerHTML;
+                copyLinkBtn.innerHTML = '<i class="fa-solid fa-check" style="color: #000"></i>';
+                setTimeout(() => {
+                    copyLinkBtn.innerHTML = origIcon;
+                }, 2000);
+            })
+            .catch(() => {
+                alert('Não foi possível copiar o link automaticamente. Copie manualmente na caixa de texto!');
+            });
+    });
+
+    // Ação do botão "Minha Sala"
+    myBoardBtn.addEventListener('click', () => {
+        if (localUserEmail) {
+            window.location.search = `?board=${encodeURIComponent(localUserEmail)}`;
+        }
+    });
+
+    // Ação do botão Logout / Sair
+    logoutBtn.addEventListener('click', () => {
+        logout();
+    });
+
+    function logout() {
+        localStorage.removeItem('cinevoto_user_email');
+        localStorage.removeItem('cinevoto_user_name');
+        window.location.href = window.location.origin + window.location.pathname;
+    }
+
     // Estado de erro de conexão
     function showErrorState() {
         showLoading(false);
+        appLayout.classList.remove('hidden');
+        landingSection.classList.add('hidden');
         votingSection.classList.remove('hidden');
         setupSection.classList.add('hidden');
-        activeControls.classList.add('hidden');
+        visitorWaitSection.classList.add('hidden');
+        adminControlsCard.classList.add('hidden');
+        
         moviesList.innerHTML = `
             <div class="loading-state" style="color: var(--accent-neon-red); flex-direction: column; text-align: center;">
                 <i class="fa-solid fa-triangle-exclamation" style="font-size: 2.5rem; margin-bottom: 1rem;"></i>
@@ -353,5 +517,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Inicialização
-    loadState();
+    init();
 });

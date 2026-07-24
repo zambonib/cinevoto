@@ -28,14 +28,54 @@
             <p class="logo-subtitle">A votação perfeita para a noite de cinema</p>
         </header>
 
-        <!-- Main Layout: 3 Columns Grid -->
-        <div class="app-layout">
+        <!-- Landing Page (Shown when not logged in and no active board) -->
+        <section id="landing-section" class="landing-section card">
+            <div class="landing-hero">
+                <i class="fa-solid fa-popcorn hero-icon"></i>
+                <h2>Crie sua Sala de Votação</h2>
+                <p>Decida com seus amigos o filme que vão assistir hoje de forma simples, interativa e estilosa!</p>
+            </div>
+            
+            <form id="login-form" class="login-form">
+                <div class="input-group">
+                    <input type="text" id="login-name" placeholder="Seu Nome (Ex: Dalzam)" required autocomplete="off">
+                    <label for="login-name"><i class="fa-solid fa-user"></i></label>
+                </div>
+                <div class="input-group">
+                    <input type="email" id="login-email" placeholder="Seu E-mail (Ex: dalzam@email.com)" required autocomplete="off">
+                    <label for="login-email"><i class="fa-solid fa-envelope"></i></label>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-right-to-bracket"></i> Entrar / Criar Minha Sala</button>
+            </form>
+        </section>
+
+        <!-- Main Layout: 3 Columns Grid (Hidden by default, shown when board is loaded) -->
+        <div id="app-layout" class="app-layout hidden">
             
             <!-- Left Column: Controls and Status -->
             <aside class="layout-col col-left">
-                <div class="card status-card">
-                    <h3><i class="fa-solid fa-circle-nodes"></i> Painel de Controle</h3>
-                    <p class="status-description">Gerencie a sessão de votação ativa e limpe o histórico se necessário.</p>
+                <!-- User Profile / Board Info -->
+                <div class="card board-info-card">
+                    <div class="board-profile">
+                        <div class="profile-avatar">
+                            <i class="fa-solid fa-clapperboard"></i>
+                        </div>
+                        <div class="profile-details">
+                            <h4 id="board-owner-name">Sala de Votação</h4>
+                            <p id="board-owner-email">carregando...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="board-actions">
+                        <button id="my-board-btn" class="btn btn-secondary hidden"><i class="fa-solid fa-house-user"></i> Minha Sala</button>
+                        <button id="logout-btn" class="btn btn-danger-outline"><i class="fa-solid fa-right-from-bracket"></i> Sair / Mudar Conta</button>
+                    </div>
+                </div>
+
+                <!-- Admin Controls Card (only visible to board owner) -->
+                <div id="admin-controls-card" class="card status-card hidden">
+                    <h3><i class="fa-solid fa-circle-nodes"></i> Painel do Proprietário</h3>
+                    <p class="status-description">Você é o dono desta sala. Compartilhe o link com amigos e encerre a votação quando quiser.</p>
                     
                     <div id="active-controls" class="control-group hidden">
                         <button id="finish-round-btn" class="btn btn-primary"><i class="fa-solid fa-check-double"></i> Finalizar Votação</button>
@@ -44,23 +84,23 @@
                     <button id="reset-all-btn" class="btn btn-danger"><i class="fa-solid fa-xmark"></i> Cancelar Votação</button>
                 </div>
 
-                <div class="card info-card">
-                    <h3><i class="fa-solid fa-circle-question"></i> Como Funciona?</h3>
-                    <ul class="help-list">
-                        <li><i class="fa-solid fa-chevron-right"></i> Cadastre <strong>3 filmes</strong> para começar.</li>
-                        <li><i class="fa-solid fa-chevron-right"></i> Votem na lista de filmes ativos.</li>
-                        <li><i class="fa-solid fa-chevron-right"></i> Ao finalizar, o vencedor vai para os <strong>Assistidos</strong>.</li>
-                        <li><i class="fa-solid fa-chevron-right"></i> Filmes assistidos não podem ser repetidos!</li>
-                    </ul>
+                <!-- Share Room Card -->
+                <div class="card share-card">
+                    <h3><i class="fa-solid fa-share-nodes"></i> Compartilhar Sala</h3>
+                    <p>Copie o link da sala abaixo e envie para os seus amigos votarem!</p>
+                    <div class="share-input-group">
+                        <input type="text" id="share-link-input" readonly value="">
+                        <button id="copy-link-btn" title="Copiar Link"><i class="fa-solid fa-copy"></i></button>
+                    </div>
                 </div>
             </aside>
 
             <!-- Center Column: Main Active Content (Form or Voting) -->
             <main class="layout-col col-center">
-                <!-- Section 1: Setup Form (shown when inactive) -->
+                <!-- Section 1: Setup Form (shown when inactive and user is the owner) -->
                 <section id="setup-section" class="setup-area card hidden">
                     <div class="setup-header">
-                        <h2><i class="fa-solid fa-clapperboard"></i> Configurar Nova Rodada</h2>
+                        <h2><i class="fa-solid fa-film"></i> Configurar Nova Rodada</h2>
                         <p>Sugira exatamente 3 filmes para iniciar a votação de hoje:</p>
                     </div>
                     <form id="setup-movies-form" class="setup-form">
@@ -78,6 +118,14 @@
                         </div>
                         <button type="submit" class="btn btn-primary"><i class="fa-solid fa-play"></i> Iniciar Votação</button>
                     </form>
+                </section>
+
+                <!-- Section 1b: Visitor Waiting Screen (shown when inactive and user is NOT the owner) -->
+                <section id="visitor-wait-section" class="visitor-wait-area card hidden">
+                    <i class="fa-solid fa-ticket-simple wait-icon"></i>
+                    <h2>Aguardando Nova Rodada</h2>
+                    <p>O proprietário desta sala ainda não iniciou uma votação de filmes para hoje.</p>
+                    <p class="wait-subtext">Atualize a página em instantes ou crie a sua própria sala para votar!</p>
                 </section>
 
                 <!-- Section 2: Voting Interface (shown when active) -->
@@ -120,13 +168,13 @@
             <aside class="layout-col col-right">
                 <div class="card watched-card">
                     <h3><i class="fa-solid fa-ticket"></i> Filmes Assistidos</h3>
-                    <p class="watched-subtitle">Filmes que já venceram rodadas anteriores e estão fora de votações futuras:</p>
+                    <p class="watched-subtitle">Filmes que já venceram rodadas anteriores nesta sala e estão bloqueados:</p>
                     
                     <div id="watched-list" class="watched-list">
                         <!-- Dynamic list of watched movies -->
                         <div class="watched-empty">
                             <i class="fa-solid fa-ghost"></i>
-                            <p>Nenhum filme assistido ainda. Que tal começar uma votação?</p>
+                            <p>Nenhum filme assistido ainda nesta sala.</p>
                         </div>
                     </div>
                 </div>
