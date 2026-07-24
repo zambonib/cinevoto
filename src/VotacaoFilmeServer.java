@@ -335,6 +335,7 @@ public class VotacaoFilmeServer {
         String from = System.getenv("SMTP_FROM");
 
         if (host == null || portStr == null || user == null || pass == null || from == null) {
+            System.err.println("[SMTP] ERRO: Variáveis de ambiente de e-mail não configuradas! E-mail não enviado.");
             return; // Permanece operando apenas em simulação de console
         }
 
