@@ -37,11 +37,23 @@ document.addEventListener('DOMContentLoaded', () => {
         assistidos: []
     };
 
-    // Busca o estado completo do backend
+    // Gera ou obtém o identificador exclusivo deste navegador
+    function getVoterId() {
+        let voterId = localStorage.getItem('cinevoto_voter_id');
+        if (!voterId) {
+            // Gera um ID único aleatório simples
+            voterId = 'usr_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            localStorage.setItem('cinevoto_voter_id', voterId);
+        }
+        return voterId;
+    }
+
+    // Busca o estado completo do backend enviando o ID do usuário
     async function loadState() {
         showLoading(true);
         try {
-            const response = await fetch(API_ESTADO);
+            const voterId = getVoterId();
+            const response = await fetch(`${API_ESTADO}?voterId=${voterId}`);
             if (!response.ok) throw new Error('Falha ao conectar com o servidor.');
             const data = await response.json();
             updateUI(data);
@@ -191,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Envia requisição de voto ao servidor
+    // Envia requisição de voto ao servidor contendo o Voter ID
     async function castVote(id) {
         try {
             // Animação de clique imediata
@@ -204,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(API_VOTAR, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id })
+                body: JSON.stringify({ id: id, voterId: getVoterId() })
             });
 
             if (!response.ok) throw new Error('Erro ao registrar voto.');
@@ -228,7 +240,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             showLoading(true);
-            const response = await fetch(API_INICIAR, {
+            const voterId = getVoterId();
+            const response = await fetch(`${API_INICIAR}?voterId=${voterId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(moviesArray)
@@ -282,6 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             
             alert(`Rodada finalizada com sucesso! Bom filme! 🎬🍿`);
+            // Limpa o voto no LocalStorage para a próxima rodada
             updateUI(data);
         } catch (error) {
             alert('Erro ao finalizar a votação.');

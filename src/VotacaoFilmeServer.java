@@ -23,8 +23,8 @@ public class VotacaoFilmeServer {
     private static final List<String> movies = new CopyOnWriteArrayList<>();
     private static final List<AtomicInteger> votes = new CopyOnWriteArrayList<>();
     private static final List<String> watched = new CopyOnWriteArrayList<>();
-    // IPs que já votaram na rodada ativa
-    private static final List<String> votedIps = new CopyOnWriteArrayList<>();
+    // IDs de navegadores/usuários que já votaram na rodada ativa
+    private static final List<String> votedIds = new CopyOnWriteArrayList<>();
 
     public static void main(String[] args) throws IOException {
         // Carrega dados persistidos ao iniciar
@@ -85,7 +85,7 @@ public class VotacaoFilmeServer {
             movies.clear();
             votes.clear();
             watched.clear();
-            votedIps.clear();
+            votedIds.clear();
 
             while ((line = br.readLine()) != null) {
                 line = line.trim();
@@ -111,7 +111,7 @@ public class VotacaoFilmeServer {
                 } else if ("WATCHED".equals(section)) {
                     watched.add(line);
                 } else if ("VOTERS".equals(section)) {
-                    votedIps.add(line);
+                    votedIds.add(line);
                 }
             }
             System.out.println("Dados carregados com sucesso de " + DATA_FILE);
@@ -134,8 +134,8 @@ public class VotacaoFilmeServer {
             
             bw.write("[VOTERS]");
             bw.newLine();
-            for (String ip : votedIps) {
-                bw.write(ip);
+            for (String id : votedIds) {
+                bw.write(id);
                 bw.newLine();
             }
 
@@ -151,12 +151,12 @@ public class VotacaoFilmeServer {
         }
     }
 
-    // Retorna o estado completo da aplicação em JSON, indicando se o IP do cliente já votou
-    private static String getStateJson(String clientIp) {
+    // Retorna o estado completo da aplicação em JSON, indicando se o voterId do cliente já votou
+    private static String getStateJson(String voterId) {
         StringBuilder sb = new StringBuilder("{");
         
-        // Verifica se o IP do cliente já votou
-        boolean hasVoted = votedIps.contains(clientIp);
+        // Verifica se o ID do cliente já votou
+        boolean hasVoted = !voterId.isEmpty() && votedIds.contains(voterId);
         sb.append(String.format("\"usuarioVotou\":%b,", hasVoted));
 
         // Filmes ativos
@@ -213,18 +213,17 @@ public class VotacaoFilmeServer {
         return false;
     }
 
-    // Obtém o IP real do cliente, considerando possíveis proxies reversos (Nginx, Proxmox, etc.)
-    private static String getClientIp(HttpExchange exchange) {
-        String xForwardedFor = exchange.getRequestHeaders().getFirst("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.trim().isEmpty()) {
-            String[] ips = xForwardedFor.split(",");
-            return ips[0].trim();
+    // Extrai o voterId da URL de query (GET)
+    private static String getVoterIdFromQuery(HttpExchange exchange) {
+        String query = exchange.getRequestURI().getQuery();
+        if (query != null) {
+            Pattern p = Pattern.compile("voterId=([^&]+)");
+            Matcher m = p.matcher(query);
+            if (m.find()) {
+                return m.group(1).trim();
+            }
         }
-        String xRealIp = exchange.getRequestHeaders().getFirst("X-Real-IP");
-        if (xRealIp != null && !xRealIp.trim().isEmpty()) {
-            return xRealIp.trim();
-        }
-        return exchange.getRemoteAddress().getAddress().getHostAddress();
+        return "";
     }
 
     // GET /api/estado
@@ -234,8 +233,8 @@ public class VotacaoFilmeServer {
             if (handleOptions(exchange)) return;
             
             if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-                String clientIp = getClientIp(exchange);
-                sendJsonResponse(exchange, 200, getStateJson(clientIp));
+                String voterId = getVoterIdFromQuery(exchange);
+                sendJsonResponse(exchange, 200, getStateJson(voterId));
             } else {
                 sendJsonResponse(exchange, 405, "{\"error\":\"Método não permitido. Use GET.\"}");
             }
@@ -287,10 +286,10 @@ public class VotacaoFilmeServer {
                         }
                     }
 
-                    // Inicializa a nova rodada e limpa os IPs votantes da rodada anterior
+                    // Inicializa a nova rodada e limpa os IDs votantes da rodada anterior
                     movies.clear();
                     votes.clear();
-                    votedIps.clear();
+                    votedIds.clear();
                     
                     for (String m : newMovies) {
                         movies.add(m);
@@ -298,8 +297,8 @@ public class VotacaoFilmeServer {
                     }
 
                     saveData();
-                    String clientIp = getClientIp(exchange);
-                    sendJsonResponse(exchange, 200, getStateJson(clientIp));
+                    String voterId = getVoterIdFromQuery(exchange);
+                    sendJsonResponse(exchange, 200, getStateJson(voterId));
                 } catch (Exception e) {
                     sendJsonResponse(exchange, 500, "{\"error\":\"Erro ao iniciar rodada de votação.\"}");
                 }
@@ -317,29 +316,42 @@ public class VotacaoFilmeServer {
 
             if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                 try {
-                    String clientIp = getClientIp(exchange);
+                    String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                    int id = -1;
+                    String voterId = "";
 
-                    // Validação de negócio: Apenas 1 voto por IP
-                    if (votedIps.contains(clientIp)) {
+                    // Parse do id do filme: {"id": X}
+                    Pattern pId = Pattern.compile("\"id\"\\s*:\\s*(\\d+)");
+                    Matcher mId = pId.matcher(body);
+                    if (mId.find()) {
+                        id = Integer.parseInt(mId.group(1));
+                    }
+
+                    // Parse do voterId do cliente: {"voterId": "..."}
+                    Pattern pVoter = Pattern.compile("\"voterId\"\\s*:\\s*\"([^\"]+)\"");
+                    Matcher mVoter = pVoter.matcher(body);
+                    if (mVoter.find()) {
+                        voterId = mVoter.group(1).trim();
+                    }
+
+                    // Validação de segurança
+                    if (voterId.isEmpty()) {
+                        sendJsonResponse(exchange, 400, "{\"error\":\"Identificação do usuário (voterId) não fornecida.\"}");
+                        return;
+                    }
+
+                    // Validação de negócio: Apenas 1 voto por Voter ID
+                    if (votedIds.contains(voterId)) {
                         sendJsonResponse(exchange, 400, "{\"error\":\"Você já votou nesta rodada!\"}");
                         return;
                     }
 
-                    String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-                    int id = -1;
-                    
-                    Pattern p = Pattern.compile("\"id\"\\s*:\\s*(\\d+)");
-                    Matcher m = p.matcher(body);
-                    if (m.find()) {
-                        id = Integer.parseInt(m.group(1));
-                    }
-
                     if (id >= 0 && id < votes.size()) {
                         votes.get(id).incrementAndGet();
-                        votedIps.add(clientIp); // Registra que este IP já votou
+                        votedIds.add(voterId); // Registra o ID do navegador
                         
                         saveData();
-                        sendJsonResponse(exchange, 200, getStateJson(clientIp));
+                        sendJsonResponse(exchange, 200, getStateJson(voterId));
                     } else {
                         sendJsonResponse(exchange, 400, "{\"error\":\"ID de filme inválido.\"}");
                     }
@@ -382,11 +394,10 @@ public class VotacaoFilmeServer {
                     // Limpa filmes ativos e lista de votantes para a próxima rodada
                     movies.clear();      
                     votes.clear();
-                    votedIps.clear();
+                    votedIds.clear();
 
                     saveData();
-                    String clientIp = getClientIp(exchange);
-                    sendJsonResponse(exchange, 200, getStateJson(clientIp));
+                    sendJsonResponse(exchange, 200, getStateJson(""));
                 } else {
                     sendJsonResponse(exchange, 500, "{\"error\":\"Não foi possível determinar o vencedor.\"}");
                 }
@@ -406,12 +417,11 @@ public class VotacaoFilmeServer {
                 // Limpa apenas a rodada ativa. A lista de filmes assistidos é preservada!
                 movies.clear();
                 votes.clear();
-                votedIps.clear();
+                votedIds.clear();
 
                 saveData(); // Salva o novo estado mantendo o histórico de assistidos
 
-                String clientIp = getClientIp(exchange);
-                sendJsonResponse(exchange, 200, getStateJson(clientIp));
+                sendJsonResponse(exchange, 200, getStateJson(""));
             } else {
                 sendJsonResponse(exchange, 405, "{\"error\":\"Método não permitido. Use POST.\"}");
             }
