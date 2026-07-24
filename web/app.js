@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Endpoints da API
-    const API_LOGIN = '/api/login';
+    const API_SOLICITAR_CODIGO = '/api/solicitar-codigo';
+    const API_CONFIRMAR_CODIGO = '/api/confirmar-codigo';
     const API_ESTADO = '/api/estado';
     const API_INICIAR = '/api/iniciar';
     const API_VOTAR = '/api/votar';
@@ -12,11 +13,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const appLayout = document.getElementById('app-layout');
     const loadingSpinner = document.getElementById('loading-spinner');
     
-    // Formulários
-    const loginForm = document.getElementById('login-form');
+    // Área de Apresentação & Autenticação
+    const presentationArea = document.getElementById('presentation-area');
+    const btnShowRegister = document.getElementById('btn-show-register');
+    const btnShowLogin = document.getElementById('btn-show-login');
+    
+    const authFormArea = document.getElementById('auth-form-area');
+    const authTitle = document.getElementById('auth-title');
+    const authDesc = document.getElementById('auth-desc');
+    const authForm = document.getElementById('auth-form');
+    const authSubmitBtn = document.getElementById('auth-submit-btn');
+    const registerFieldsGroup = document.getElementById('register-fields-group');
     const loginNameInput = document.getElementById('login-name');
     const loginEmailInput = document.getElementById('login-email');
+    const btnBackToPresentation = document.getElementById('btn-back-to-presentation');
     
+    // Área de Verificação do Código
+    const verificationCodeArea = document.getElementById('verification-code-area');
+    const verificationForm = document.getElementById('verification-form');
+    const verificationCodeInput = document.getElementById('verification-code');
+    const verifyingEmailSpan = document.getElementById('verifying-email');
+    const btnBackToAuth = document.getElementById('btn-back-to-auth');
+    
+    // Seção Interna da Sala
     const setupSection = document.getElementById('setup-section');
     const setupForm = document.getElementById('setup-movies-form');
     const movieInputs = [
@@ -25,17 +44,16 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('movie-3-input')
     ];
     
-    // Área de Visitante
     const visitorWaitSection = document.getElementById('visitor-wait-section');
     const votingSection = document.getElementById('voting-section');
     
-    // Painel do Usuário / Sala
+    // Informações da Sala
     const boardOwnerName = document.getElementById('board-owner-name');
     const boardOwnerEmail = document.getElementById('board-owner-email');
     const myBoardBtn = document.getElementById('my-board-btn');
     const logoutBtn = document.getElementById('logout-btn');
     
-    // Controles Administrativos
+    // Painel Administrativo
     const adminControlsCard = document.getElementById('admin-controls-card');
     const activeControls = document.getElementById('active-controls');
     const finishRoundBtn = document.getElementById('finish-round-btn');
@@ -45,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const shareLinkInput = document.getElementById('share-link-input');
     const copyLinkBtn = document.getElementById('copy-link-btn');
     
-    // Listas e Destaques
+    // Dados Dinâmicos
     const moviesList = document.getElementById('movies-list');
     const totalVotesBadge = document.getElementById('total-votes-badge');
     const watchedList = document.getElementById('watched-list');
@@ -55,13 +73,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const winnerStats = document.getElementById('winner-stats');
     const votedAlert = document.getElementById('voted-alert');
 
-    // Roteamento: lê ?board=email da URL
+    // Leitura dos parâmetros da URL
     const urlParams = new URLSearchParams(window.location.search);
     const boardOwner = urlParams.get('board');
 
-    // Dados do usuário logado localmente
+    // Dados do Usuário Logado
     const localUserEmail = localStorage.getItem('cinevoto_user_email');
     const localUserName = localStorage.getItem('cinevoto_user_name');
+
+    // Variáveis de fluxo temporárias
+    let authMode = 'register'; // 'register' ou 'login'
+    let tempEmail = '';
+    let tempName = '';
 
     // Estado da Sala Atual
     let state = {
@@ -82,26 +105,152 @@ document.addEventListener('DOMContentLoaded', () => {
         return voterId;
     }
 
-    // Gerenciador de inicialização do app
+    // Inicialização da Tela
     function init() {
         if (!boardOwner) {
-            // Se não há uma sala na URL
             if (localUserEmail) {
-                // Redireciona automaticamente para a sala do usuário logado
+                // Redireciona para a própria sala do usuário logado
                 window.location.search = `?board=${encodeURIComponent(localUserEmail)}`;
             } else {
-                // Senão, exibe a Landing Page de cadastro/login
+                // Exibe a Landing Page de Apresentação
                 landingSection.classList.remove('hidden');
                 appLayout.classList.add('hidden');
                 loadingSpinner.classList.add('hidden');
+                
+                presentationArea.classList.remove('hidden');
+                authFormArea.classList.add('hidden');
+                verificationCodeArea.classList.add('hidden');
             }
         } else {
-            // Se há uma sala na URL, carrega o estado dela
+            // Carrega os dados da sala informada na URL
             landingSection.classList.add('hidden');
             appLayout.classList.remove('hidden');
             loadState();
         }
     }
+
+    // Gerenciador de Exibição das telas de autenticação
+    btnShowRegister.addEventListener('click', () => {
+        authMode = 'register';
+        presentationArea.classList.add('hidden');
+        authFormArea.classList.remove('hidden');
+        
+        // Exibe campos de nome
+        registerFieldsGroup.classList.remove('hidden');
+        loginNameInput.required = true;
+        
+        authTitle.textContent = "Criar Minha Sala";
+        authDesc.textContent = "Insira seus dados para criar sua sala e validar seu e-mail:";
+        authSubmitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar Código de Confirmação';
+    });
+
+    btnShowLogin.addEventListener('click', () => {
+        authMode = 'login';
+        presentationArea.classList.add('hidden');
+        authFormArea.classList.remove('hidden');
+        
+        // Oculta campos de nome
+        registerFieldsGroup.classList.add('hidden');
+        loginNameInput.required = false;
+        
+        authTitle.textContent = "Acessar Minha Sala";
+        authDesc.textContent = "Informe seu e-mail de cadastro para receber o código de acesso:";
+        authSubmitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Enviar Código de Acesso';
+    });
+
+    btnBackToPresentation.addEventListener('click', () => {
+        authFormArea.classList.add('hidden');
+        presentationArea.classList.remove('hidden');
+    });
+
+    btnBackToAuth.addEventListener('click', () => {
+        verificationCodeArea.classList.add('hidden');
+        authFormArea.classList.remove('hidden');
+    });
+
+    // Envio do formulário inicial (Solicita código OTP)
+    authForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = loginEmailInput.value.trim();
+        const name = authMode === 'register' ? loginNameInput.value.trim() : '';
+
+        if (!email) return;
+
+        // Validação simples no lado do cliente
+        if (!email.match(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)) {
+            alert('Por favor, digite um endereço de e-mail válido!');
+            return;
+        }
+
+        try {
+            showLoading(true);
+            const response = await fetch(API_SOLICITAR_CODIGO, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, name: name })
+            });
+
+            const data = await response.json();
+            showLoading(false);
+
+            if (!response.ok) {
+                alert(data.error || 'Erro ao solicitar código.');
+                return;
+            }
+
+            // Armazena temporariamente para o próximo passo
+            tempEmail = email;
+            tempName = name;
+
+            // Transiciona para a tela de preenchimento do código
+            verifyingEmailSpan.textContent = email;
+            authFormArea.classList.add('hidden');
+            verificationCodeArea.classList.remove('hidden');
+            verificationCodeInput.value = '';
+            verificationCodeInput.focus();
+        } catch (error) {
+            alert('Erro de conexão ao solicitar o código.');
+            showLoading(false);
+        }
+    });
+
+    // Confirmação do código OTP
+    verificationForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const code = verificationCodeInput.value.trim();
+
+        if (code.length !== 6) {
+            alert('Por favor, digite o código de 6 dígitos.');
+            return;
+        }
+
+        try {
+            showLoading(true);
+            const response = await fetch(`${API_CONFIRMAR_CODIGO}?voterId=${getVoterId()}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: tempEmail, code: code })
+            });
+
+            const data = await response.json();
+            showLoading(false);
+
+            if (!response.ok) {
+                alert(data.error || 'Código incorreto ou expirado.');
+                return;
+            }
+
+            // Login bem sucedido! Salva os dados localmente
+            localStorage.setItem('cinevoto_user_email', data.ownerEmail);
+            localStorage.setItem('cinevoto_user_name', data.ownerName);
+
+            // Redireciona para a sala criada/acessada
+            window.location.search = `?board=${encodeURIComponent(data.ownerEmail)}`;
+        } catch (error) {
+            alert('Erro ao validar o código.');
+            showLoading(false);
+        }
+    });
 
     // Busca o estado completo do proprietário da sala especificada
     async function loadState() {
@@ -129,18 +278,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Exibe ou oculta a tela de carregamento
-    function showLoading(isLoading) {
-        if (isLoading) {
-            loadingSpinner.classList.remove('hidden');
-            setupSection.classList.add('hidden');
-            visitorWaitSection.classList.add('hidden');
-            votingSection.classList.add('hidden');
-        } else {
-            loadingSpinner.classList.add('hidden');
-        }
-    }
-
     // Atualiza toda a interface com base no estado recebido da sala
     function updateUI(newState) {
         state = newState;
@@ -153,7 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const shareLink = `${window.location.origin}${window.location.pathname}?board=${encodeURIComponent(state.ownerEmail)}`;
         shareLinkInput.value = shareLink;
 
-        // Verifica permissão (se o usuário logado é o proprietário da sala)
+        // Verifica se o usuário logado localmente é o proprietário da sala
         const isOwner = localUserEmail && localUserEmail.toLowerCase() === state.ownerEmail.toLowerCase();
 
         // Gerencia exibição do botão "Minha Sala"
@@ -163,7 +300,6 @@ document.addEventListener('DOMContentLoaded', () => {
             myBoardBtn.classList.add('hidden');
         }
 
-        // Renderiza o histórico de filmes assistidos (canto direito)
         renderWatchedList();
 
         // Gerencia painel administrativo
@@ -180,7 +316,6 @@ document.addEventListener('DOMContentLoaded', () => {
             votingSection.classList.remove('hidden');
             activeControls.classList.remove('hidden');
 
-            // Exibe ou esconde o alerta de "Já Votou"
             if (state.usuarioVotou) {
                 votedAlert.classList.remove('hidden');
             } else {
@@ -198,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 visitorWaitSection.classList.add('hidden');
             } else {
                 setupSection.classList.add('hidden');
-                visitorWaitSection.classList.remove('hidden'); // Visitante aguarda
+                visitorWaitSection.classList.remove('hidden');
             }
         }
     }
@@ -210,7 +345,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalVotes = state.ativos.reduce((acc, m) => acc + m.votos, 0);
         totalVotesBadge.textContent = `Total: ${totalVotes} ${totalVotes === 1 ? 'voto' : 'votos'}`;
 
-        // Determina o vencedor atual em tempo real
         let maxVotes = 0;
         let winners = [];
 
@@ -223,7 +357,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Atualiza o banner do vencedor atual
         if (maxVotes > 0) {
             winnerBanner.classList.remove('hidden');
             if (winners.length === 1) {
@@ -237,7 +370,6 @@ document.addEventListener('DOMContentLoaded', () => {
             winnerBanner.classList.add('hidden');
         }
 
-        // Renderiza cada card de filme
         const isVoted = state.usuarioVotou;
         state.ativos.forEach((movie, index) => {
             const percentage = totalVotes > 0 ? Math.round((movie.votos / totalVotes) * 100) : 0;
@@ -267,7 +399,6 @@ document.addEventListener('DOMContentLoaded', () => {
             moviesList.appendChild(movieItem);
         });
 
-        // Vincula eventos aos novos botões de voto
         document.querySelectorAll('.btn-vote').forEach(button => {
             button.addEventListener('click', (e) => {
                 const id = parseInt(e.currentTarget.getAttribute('data-id'));
@@ -301,41 +432,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Cadastro / Login na Landing Page
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = loginNameInput.value.trim();
-        const email = loginEmailInput.value.trim();
-        
-        if (!name || !email) return;
-
-        try {
-            showLoading(true);
-            const response = await fetch(`${API_LOGIN}?voterId=${getVoterId()}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name, email: email })
-            });
-
-            if (!response.ok) throw new Error('Falha ao efetuar login.');
-            const data = await response.json();
-
-            // Salva credenciais locais
-            localStorage.setItem('cinevoto_user_email', email);
-            localStorage.setItem('cinevoto_user_name', name);
-
-            // Redireciona para o link da sala
-            window.location.search = `?board=${encodeURIComponent(email)}`;
-        } catch (error) {
-            alert('Não foi possível entrar na sala. Tente novamente.');
-            showLoading(false);
-        }
-    });
-
-    // Envia requisição de voto ao servidor contendo o Voter ID e o proprietário da sala
+    // Envia requisição de voto ao servidor
     async function castVote(id) {
         try {
-            // Animação de clique imediata
             const card = document.getElementById(`movie-card-${id}`);
             if (card) {
                 card.classList.add('pulse-highlight');
@@ -356,7 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Submete o formulário dos 3 filmes iniciais (apenas dono da sala)
+    // Submete os 3 filmes iniciais
     setupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -383,7 +482,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Limpa os campos do formulário
             movieInputs.forEach(input => input.value = '');
             updateUI(data);
         } catch (error) {
@@ -392,7 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Finaliza a rodada e declara o vencedor (apenas dono da sala)
+    // Finaliza a rodada (apenas dono)
     finishRoundBtn.addEventListener('click', async () => {
         if (state.ativos.length === 0) return;
 
@@ -428,7 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Cancela a rodada ativa (apenas dono da sala)
+    // Cancela a rodada ativa (apenas dono)
     resetAllBtn.addEventListener('click', async () => {
         if (!confirm('Tem certeza de que deseja cancelar a rodada de votação atual? O histórico de filmes assistidos será mantido.')) {
             return;
@@ -453,7 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Copiar link de compartilhamento
     copyLinkBtn.addEventListener('click', () => {
         shareLinkInput.select();
-        shareLinkInput.setSelectionRange(0, 99999); // Para mobile
+        shareLinkInput.setSelectionRange(0, 99999);
         navigator.clipboard.writeText(shareLinkInput.value)
             .then(() => {
                 const origIcon = copyLinkBtn.innerHTML;
@@ -463,7 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 2000);
             })
             .catch(() => {
-                alert('Não foi possível copiar o link automaticamente. Copie manualmente na caixa de texto!');
+                alert('Não foi possível copiar o link automaticamente. Copie manualmente.');
             });
     });
 
@@ -485,7 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = window.location.origin + window.location.pathname;
     }
 
-    // Estado de erro de conexão
+    // Exibição de erro
     function showErrorState() {
         showLoading(false);
         appLayout.classList.remove('hidden');
@@ -516,6 +614,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return text.replace(/[&<>"']/g, function(m) { return map[m]; });
     }
 
-    // Inicialização
+    // Inicialização do app
     init();
 });

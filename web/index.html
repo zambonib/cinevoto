@@ -28,25 +28,77 @@
             <p class="logo-subtitle">A votação perfeita para a noite de cinema</p>
         </header>
 
-        <!-- Landing Page (Shown when not logged in and no active board) -->
+        <!-- Landing Page (Presentation, Login, Register, Verification) -->
         <section id="landing-section" class="landing-section card">
-            <div class="landing-hero">
-                <i class="fa-solid fa-popcorn hero-icon"></i>
-                <h2>Crie sua Sala de Votação</h2>
-                <p>Decida com seus amigos o filme que vão assistir hoje de forma simples, interativa e estilosa!</p>
+            
+            <!-- 1. Presentation Area (Default landing) -->
+            <div id="presentation-area" class="presentation-area">
+                <div class="landing-hero">
+                    <i class="fa-solid fa-popcorn hero-icon animate-pulse"></i>
+                    <h2>Chega de brigas no sábado à noite!</h2>
+                    <p class="teaser-text">
+                        Você tem o mesmo problema que eu quando chega sábado à noite? Quer assistir a um filme, mas cada um na sua casa quer ver um filme diferente... 
+                        Aproveite agora mesmo de forma <strong>totalmente gratuita</strong>! 
+                        O <strong>CineVoto</strong> é uma aplicação que permite criar uma sala de votação para que cada membro do grupo vote no filme que quer assistir, e o mais votado vence. 
+                        E o melhor de tudo: os filmes vencedores ficam salvos em seu histórico para que não seja possível assistir ao mesmo filme duas vezes!
+                    </p>
+                </div>
+                <div class="landing-actions">
+                    <button id="btn-show-register" class="btn btn-primary"><i class="fa-solid fa-wand-magic-sparkles"></i> Criar Minha Sala Grátis</button>
+                    <button id="btn-show-login" class="btn btn-secondary"><i class="fa-solid fa-key"></i> Acessar Minha Sala</button>
+                </div>
+            </div>
+
+            <!-- 2. Authentication Form Area (Hidden by default) -->
+            <div id="auth-form-area" class="auth-form-area hidden">
+                <h2 id="auth-title">Criar Nova Sala</h2>
+                <p id="auth-desc" class="auth-description">Insira seus dados para receber o código de validação:</p>
+                
+                <form id="auth-form" class="login-form">
+                    <div id="register-fields-group">
+                        <div class="input-group">
+                            <input type="text" id="login-name" placeholder="Seu Nome (Ex: Dalzam)" autocomplete="off">
+                            <label for="login-name"><i class="fa-solid fa-user"></i></label>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <input type="email" id="login-email" placeholder="Seu E-mail (Ex: dalzam@email.com)" required autocomplete="off">
+                        <label for="login-email"><i class="fa-solid fa-envelope"></i></label>
+                    </div>
+                    <button type="submit" id="auth-submit-btn" class="btn btn-primary">
+                        <i class="fa-solid fa-paper-plane"></i> Enviar Código de Confirmação
+                    </button>
+                    <button type="button" id="btn-back-to-presentation" class="btn btn-link">
+                        <i class="fa-solid fa-arrow-left"></i> Voltar
+                    </button>
+                </form>
+            </div>
+
+            <!-- 3. Verification Code Area (Hidden by default) -->
+            <div id="verification-code-area" class="verification-code-area hidden">
+                <i class="fa-solid fa-envelope-open-text verification-icon"></i>
+                <h2>Validação de E-mail</h2>
+                <p class="verification-desc">
+                    Enviamos um código de segurança de 6 dígitos para o e-mail: <br>
+                    <strong id="verifying-email"></strong>
+                </p>
+                
+                <form id="verification-form" class="login-form">
+                    <div class="input-group code-input-group">
+                        <input type="text" id="verification-code" placeholder="0 0 0 0 0 0" maxlength="6" required autocomplete="off">
+                        <label for="verification-code"><i class="fa-solid fa-shield-halved"></i></label>
+                    </div>
+                    
+                    <div class="testing-notice">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>Como você está em ambiente local, o código também foi exibido no console do servidor.</span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-circle-check"></i> Confirmar e Entrar</button>
+                    <button type="button" id="btn-back-to-auth" class="btn btn-link"><i class="fa-solid fa-arrow-left"></i> Alterar E-mail / Nome</button>
+                </form>
             </div>
             
-            <form id="login-form" class="login-form">
-                <div class="input-group">
-                    <input type="text" id="login-name" placeholder="Seu Nome (Ex: Dalzam)" required autocomplete="off">
-                    <label for="login-name"><i class="fa-solid fa-user"></i></label>
-                </div>
-                <div class="input-group">
-                    <input type="email" id="login-email" placeholder="Seu E-mail (Ex: dalzam@email.com)" required autocomplete="off">
-                    <label for="login-email"><i class="fa-solid fa-envelope"></i></label>
-                </div>
-                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-right-to-bracket"></i> Entrar / Criar Minha Sala</button>
-            </form>
         </section>
 
         <!-- Main Layout: 3 Columns Grid (Hidden by default, shown when board is loaded) -->
@@ -95,7 +147,7 @@
                 </div>
             </aside>
 
-            <!-- Center Column: Main Active Content (Form or Voting) -->
+            <!-- Center Column: Main Active Content -->
             <main class="layout-col col-center">
                 <!-- Section 1: Setup Form (shown when inactive and user is the owner) -->
                 <section id="setup-section" class="setup-area card hidden">
@@ -120,7 +172,7 @@
                     </form>
                 </section>
 
-                <!-- Section 1b: Visitor Waiting Screen (shown when inactive and user is NOT the owner) -->
+                <!-- Section 1b: Visitor Waiting Screen -->
                 <section id="visitor-wait-section" class="visitor-wait-area card hidden">
                     <i class="fa-solid fa-ticket-simple wait-icon"></i>
                     <h2>Aguardando Nova Rodada</h2>
@@ -130,7 +182,6 @@
 
                 <!-- Section 2: Voting Interface (shown when active) -->
                 <section id="voting-section" class="voting-area hidden">
-                    <!-- Current Winner Tracker -->
                     <div id="winner-banner" class="winner-card hidden">
                         <div class="winner-glow"></div>
                         <div class="winner-content">
@@ -140,20 +191,18 @@
                         </div>
                     </div>
 
-                    <!-- Alerta de Voto Já Realizado -->
                     <div id="voted-alert" class="voted-alert-box hidden">
                         <i class="fa-solid fa-circle-check"></i>
                         <span>Você já votou nesta rodada! Aguardando a finalização da votação.</span>
                     </div>
 
-                    <!-- Movies List -->
                     <div class="movies-container">
                         <div class="section-header">
                             <h2><i class="fa-solid fa-square-poll-vertical"></i> Escolha seu Filme</h2>
                             <span id="total-votes-badge" class="total-badge">Total: 0 votos</span>
                         </div>
                         <div id="movies-list" class="movies-list">
-                            <!-- JS will inject movie items here -->
+                            <!-- injected by JS -->
                         </div>
                     </div>
                 </section>
@@ -171,7 +220,6 @@
                     <p class="watched-subtitle">Filmes que já venceram rodadas anteriores nesta sala e estão bloqueados:</p>
                     
                     <div id="watched-list" class="watched-list">
-                        <!-- Dynamic list of watched movies -->
                         <div class="watched-empty">
                             <i class="fa-solid fa-ghost"></i>
                             <p>Nenhum filme assistido ainda nesta sala.</p>

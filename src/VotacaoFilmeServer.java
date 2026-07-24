@@ -6,8 +6,10 @@ import com.sun.net.httpserver.HttpServer;
 
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -15,6 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLSocketFactory;
 
 public class VotacaoFilmeServer {
 
@@ -35,8 +38,26 @@ public class VotacaoFilmeServer {
         }
     }
 
+    // Estrutura para os códigos de verificação pendentes
+    static class VerificationCode {
+        final String email;
+        final String name;
+        final String code;
+        final long expiresAt;
+
+        VerificationCode(String email, String name, String code, long expiresAt) {
+            this.email = email;
+            this.name = name;
+            this.code = code;
+            this.expiresAt = expiresAt;
+        }
+    }
+
     // Mapa em memória com cache das salas carregadas
     private static final ConcurrentHashMap<String, BoardState> boards = new ConcurrentHashMap<>();
+    
+    // Mapa em memória para os códigos de verificação ativos
+    private static final ConcurrentHashMap<String, VerificationCode> verificationCodes = new ConcurrentHashMap<>();
 
     public static void main(String[] args) throws IOException {
         // Assegura que o diretório de dados exista
@@ -47,7 +68,7 @@ public class VotacaoFilmeServer {
 
         int port = 8080;
         
-        // Permite definir a porta via argumento ou variável de ambiente (bom para o Ubuntu)
+        // Permite definir a porta via argumento ou variável de ambiente
         if (args.length > 0) {
             try {
                 port = Integer.parseInt(args[0]);
@@ -66,7 +87,12 @@ public class VotacaoFilmeServer {
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
 
         // Endpoints de API
+        server.createContext("/api/solicitar-codigo", new SolicitarCodigoHandler());
+        server.createContext("/api/confirmar-codigo", new ConfirmarCodigoHandler());
+        
+        // Mantém por compatibilidade ou redundância
         server.createContext("/api/login", new LoginHandler());
+        
         server.createContext("/api/estado", new EstadoHandler());
         server.createContext("/api/iniciar", new IniciarHandler());
         server.createContext("/api/votar", new VotarHandler());
@@ -76,7 +102,7 @@ public class VotacaoFilmeServer {
         // Servidor de arquivos estáticos
         server.createContext("/", new StaticFileHandler());
 
-        // Executor multi-thread para lidar com múltiplos acessos em paralelo
+        // Executor multi-thread
         server.setExecutor(Executors.newFixedThreadPool(10));
         
         System.out.println("=================================================");
@@ -88,13 +114,13 @@ public class VotacaoFilmeServer {
         server.start();
     }
 
-    // Converte o e-mail para um nome de arquivo de texto seguro
+    // Converte o e-mail para um nome de arquivo seguro
     private static String getBoardFilename(String email) {
         String safeEmail = email.toLowerCase().replaceAll("[^a-z0-9]", "_");
         return DATA_DIR + "/usr_" + safeEmail + ".txt";
     }
 
-    // Persistência: Carrega os dados de um usuário específico
+    // Persistência: Carrega os dados de um usuário
     private static synchronized BoardState loadBoardData(String email) {
         String filename = getBoardFilename(email);
         File file = new File(filename);
@@ -149,12 +175,12 @@ public class VotacaoFilmeServer {
             System.err.println("Erro ao carregar dados do board: " + e.getMessage());
             return null;
         } catch (NumberFormatException e) {
-            System.err.println("Erro de formato nos dados persistidos do board: " + e.getMessage());
+            System.err.println("Erro de formato nos dados do board: " + e.getMessage());
             return null;
         }
     }
 
-    // Persistência: Salva os dados de um usuário específico
+    // Persistência: Salva os dados de um usuário
     private static synchronized void saveBoardData(BoardState board) {
         String filename = getBoardFilename(board.ownerEmail);
         try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), StandardCharsets.UTF_8))) {
@@ -196,7 +222,6 @@ public class VotacaoFilmeServer {
         sb.append(String.format("\"ownerName\":\"%s\",", board.ownerName.replace("\"", "\\\"")));
         sb.append(String.format("\"ownerEmail\":\"%s\",", board.ownerEmail.replace("\"", "\\\"")));
         
-        // Verifica se o voterId do visitante já votou nesta sala
         boolean hasVoted = !voterId.isEmpty() && board.votedIds.contains(voterId);
         sb.append(String.format("\"usuarioVotou\":%b,", hasVoted));
 
@@ -291,17 +316,103 @@ public class VotacaoFilmeServer {
             return null;
         }
         
-        // Tenta obter do cache em memória
         BoardState board = boards.get(owner.toLowerCase());
         if (board == null) {
-            // Tenta carregar do arquivo
             board = loadBoardData(owner);
         }
         return board;
     }
 
-    // POST /api/login
-    static class LoginHandler implements HttpHandler {
+    // Cliente SMTP nativo em Java puro (sem dependências externas)
+    private static void sendEmailNativo(String toEmail, String code) {
+        String host = System.getenv("SMTP_HOST");
+        String portStr = System.getenv("SMTP_PORT");
+        String user = System.getenv("SMTP_USER");
+        String pass = System.getenv("SMTP_PASS");
+        String from = System.getenv("SMTP_FROM");
+
+        if (host == null || portStr == null || user == null || pass == null || from == null) {
+            return; // Permanece operando apenas em simulação de console
+        }
+
+        int port = Integer.parseInt(portStr);
+        new Thread(() -> {
+            try {
+                System.out.println("[SMTP] Enviando e-mail para " + toEmail + " via " + host + "...");
+                Socket socket;
+                if (port == 465) {
+                    socket = SSLSocketFactory.getDefault().createSocket(host, port);
+                } else {
+                    socket = new Socket(host, port);
+                }
+
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+                     OutputStreamWriter writer = new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8)) {
+
+                    readResponse(reader);
+                    
+                    writeCommand(writer, "EHLO " + host);
+                    readResponse(reader);
+                    
+                    writeCommand(writer, "AUTH LOGIN");
+                    readResponse(reader);
+                    
+                    writeCommand(writer, Base64.getEncoder().encodeToString(user.getBytes(StandardCharsets.UTF_8)));
+                    readResponse(reader);
+                    
+                    writeCommand(writer, Base64.getEncoder().encodeToString(pass.getBytes(StandardCharsets.UTF_8)));
+                    readResponse(reader);
+                    
+                    writeCommand(writer, "MAIL FROM:<" + from + ">");
+                    readResponse(reader);
+                    
+                    writeCommand(writer, "RCPT TO:<" + toEmail + ">");
+                    readResponse(reader);
+                    
+                    writeCommand(writer, "DATA");
+                    readResponse(reader);
+                    
+                    writer.write("From: CineVoto <" + from + ">\r\n");
+                    writer.write("To: " + toEmail + "\r\n");
+                    writer.write("Subject: Código de Verificação - CineVoto\r\n");
+                    writer.write("Content-Type: text/plain; charset=UTF-8\r\n\r\n");
+                    writer.write("Olá!\r\n\r\n");
+                    writer.write("Seu código de verificação para acessar o CineVoto é: " + code + "\r\n\r\n");
+                    writer.write("Este código expira em 10 minutos.\r\n\r\n");
+                    writer.write("Aproveite o seu filme! 🎬🍿\r\n.\r\n");
+                    writer.flush();
+                    
+                    readResponse(reader);
+                    
+                    writeCommand(writer, "QUIT");
+                    readResponse(reader);
+                }
+                socket.close();
+                System.out.println("[SMTP] E-mail enviado com sucesso para: " + toEmail);
+            } catch (Exception e) {
+                System.err.println("[SMTP] Erro ao enviar e-mail: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    private static void writeCommand(OutputStreamWriter writer, String cmd) throws IOException {
+        writer.write(cmd + "\r\n");
+        writer.flush();
+    }
+
+    private static void readResponse(BufferedReader reader) throws IOException {
+        String line = reader.readLine();
+        while (line != null) {
+            if (line.length() >= 4 && line.charAt(3) == '-') {
+                line = reader.readLine();
+            } else {
+                break;
+            }
+        }
+    }
+
+    // POST /api/solicitar-codigo
+    static class SolicitarCodigoHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             if (handleOptions(exchange)) return;
@@ -309,14 +420,8 @@ public class VotacaoFilmeServer {
             if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                 try {
                     String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-                    String name = "";
                     String email = "";
-
-                    Pattern pName = Pattern.compile("\"name\"\\s*:\\s*\"([^\"]+)\"");
-                    Matcher mName = pName.matcher(body);
-                    if (mName.find()) {
-                        name = mName.group(1).trim();
-                    }
+                    String name = "";
 
                     Pattern pEmail = Pattern.compile("\"email\"\\s*:\\s*\"([^\"]+)\"");
                     Matcher mEmail = pEmail.matcher(body);
@@ -324,12 +429,94 @@ public class VotacaoFilmeServer {
                         email = mEmail.group(1).trim();
                     }
 
+                    Pattern pName = Pattern.compile("\"name\"\\s*:\\s*\"([^\"]+)\"");
+                    Matcher mName = pName.matcher(body);
+                    if (mName.find()) {
+                        name = mName.group(1).trim();
+                    }
+
                     if (email.isEmpty()) {
-                        sendJsonResponse(exchange, 400, "{\"error\":\"E-mail é obrigatório para cadastro.\"}");
+                        sendJsonResponse(exchange, 400, "{\"error\":\"O e-mail é obrigatório.\"}");
                         return;
                     }
 
-                    // Tenta obter ou criar a sala do usuário
+                    // Validação de sintaxe de e-mail simples
+                    if (!email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+                        sendJsonResponse(exchange, 400, "{\"error\":\"Por favor, digite um e-mail válido.\"}");
+                        return;
+                    }
+
+                    // Gera código de 6 dígitos
+                    String code = String.format("%06d", (int) (Math.random() * 1000000));
+                    long expiresAt = System.currentTimeMillis() + 10 * 60 * 1000; // 10 minutos
+
+                    verificationCodes.put(email.toLowerCase(), new VerificationCode(email, name, code, expiresAt));
+
+                    // LOG DE TESTE: Sempre exibido para testes locais sem configuração de SMTP
+                    System.out.println("\n=======================================================");
+                    System.out.println("[CineVoto - Validação] Código gerado para: " + email);
+                    System.out.println("CÓDIGO DE VERIFICAÇÃO: " + code);
+                    System.out.println("=======================================================\n");
+
+                    // Tenta enviar o e-mail real via SMTP nativo
+                    sendEmailNativo(email, code);
+
+                    sendJsonResponse(exchange, 200, "{\"success\":true,\"message\":\"Código de verificação gerado.\"}");
+                } catch (Exception e) {
+                    sendJsonResponse(exchange, 500, "{\"error\":\"Erro ao gerar código de acesso.\"}");
+                }
+            } else {
+                sendJsonResponse(exchange, 405, "{\"error\":\"Método não permitido. Use POST.\"}");
+            }
+        }
+    }
+
+    // POST /api/confirmar-codigo
+    static class ConfirmarCodigoHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if (handleOptions(exchange)) return;
+
+            if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                try {
+                    String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                    String email = "";
+                    String code = "";
+
+                    Pattern pEmail = Pattern.compile("\"email\"\\s*:\\s*\"([^\"]+)\"");
+                    Matcher mEmail = pEmail.matcher(body);
+                    if (mEmail.find()) {
+                        email = mEmail.group(1).trim();
+                    }
+
+                    Pattern pCode = Pattern.compile("\"code\"\\s*:\\s*\"([^\"]+)\"");
+                    Matcher mCode = pCode.matcher(body);
+                    if (mCode.find()) {
+                        code = mCode.group(1).trim();
+                    }
+
+                    if (email.isEmpty() || code.isEmpty()) {
+                        sendJsonResponse(exchange, 400, "{\"error\":\"E-mail e código são obrigatórios.\"}");
+                        return;
+                    }
+
+                    VerificationCode activeCode = verificationCodes.get(email.toLowerCase());
+
+                    if (activeCode == null || !activeCode.code.equals(code)) {
+                        sendJsonResponse(exchange, 400, "{\"error\":\"Código de verificação incorreto.\"}");
+                        return;
+                    }
+
+                    if (System.currentTimeMillis() > activeCode.expiresAt) {
+                        verificationCodes.remove(email.toLowerCase());
+                        sendJsonResponse(exchange, 400, "{\"error\":\"Este código expirou. Solicite um novo código.\"}");
+                        return;
+                    }
+
+                    // Código válido! Remove do mapa de verificação
+                    verificationCodes.remove(email.toLowerCase());
+
+                    // Verifica se o usuário/sala já existe
                     BoardState board = boards.get(email.toLowerCase());
                     if (board == null) {
                         board = loadBoardData(email);
@@ -337,27 +524,36 @@ public class VotacaoFilmeServer {
 
                     if (board == null) {
                         // Novo usuário, cria nova sala
-                        if (name.isEmpty()) {
+                        String name = activeCode.name;
+                        if (name == null || name.trim().isEmpty()) {
                             name = "Cinema Club";
                         }
                         board = new BoardState(email, name);
                         saveBoardData(board);
                         boards.put(email.toLowerCase(), board);
-                        System.out.println("Criada nova sala para: " + email);
-                    } else if (!name.isEmpty() && !name.equals(board.ownerName)) {
-                        // Atualiza o nome da sala caso tenha mudado
-                        board.ownerName = name;
+                    } else if (activeCode.name != null && !activeCode.name.trim().isEmpty()) {
+                        // Atualiza o nome da sala se um novo nome foi passado
+                        board.ownerName = activeCode.name;
                         saveBoardData(board);
                     }
 
                     String voterId = getVoterIdFromQuery(exchange);
                     sendJsonResponse(exchange, 200, getStateJson(board, voterId));
                 } catch (Exception e) {
-                    sendJsonResponse(exchange, 500, "{\"error\":\"Erro ao processar login.\"}");
+                    sendJsonResponse(exchange, 500, "{\"error\":\"Erro ao confirmar código de segurança.\"}");
                 }
             } else {
                 sendJsonResponse(exchange, 405, "{\"error\":\"Método não permitido. Use POST.\"}");
             }
+        }
+    }
+
+    // Mantido por compatibilidade
+    static class LoginHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if (handleOptions(exchange)) return;
+            sendJsonResponse(exchange, 400, "{\"error\":\"Login direto desativado. Use /api/solicitar-codigo.\"}");
         }
     }
 
@@ -398,7 +594,6 @@ public class VotacaoFilmeServer {
                     String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
                     List<String> newMovies = new ArrayList<>();
 
-                    // Parse simples de array JSON ["A", "B", "C"]
                     int startIdx = body.indexOf('[');
                     int endIdx = body.indexOf(']');
                     if (startIdx != -1 && endIdx != -1 && endIdx > startIdx) {
@@ -416,13 +611,11 @@ public class VotacaoFilmeServer {
                         }
                     }
 
-                    // Validação de negócio 1: Exatamente 3 filmes
                     if (newMovies.size() != 3) {
                         sendJsonResponse(exchange, 400, "{\"error\":\"Você deve sugerir exatamente 3 filmes para iniciar a votação.\"}");
                         return;
                     }
 
-                    // Validação de negócio 2: Nenhum pode ser repetido nos assistidos
                     for (String movie : newMovies) {
                         for (String w : board.watched) {
                             if (w.equalsIgnoreCase(movie)) {
@@ -432,7 +625,6 @@ public class VotacaoFilmeServer {
                         }
                     }
 
-                    // Inicializa a nova rodada na sala correspondente
                     board.movies.clear();
                     board.votes.clear();
                     board.votedIds.clear();
@@ -472,14 +664,12 @@ public class VotacaoFilmeServer {
                     int id = -1;
                     String voterId = "";
 
-                    // Parse do id do filme
                     Pattern pId = Pattern.compile("\"id\"\\s*:\\s*(\\d+)");
                     Matcher mId = pId.matcher(body);
                     if (mId.find()) {
                         id = Integer.parseInt(mId.group(1));
                     }
 
-                    // Parse do voterId
                     Pattern pVoter = Pattern.compile("\"voterId\"\\s*:\\s*\"([^\"]+)\"");
                     Matcher mVoter = pVoter.matcher(body);
                     if (mVoter.find()) {
@@ -491,7 +681,6 @@ public class VotacaoFilmeServer {
                         return;
                     }
 
-                    // Validação de negócio: Apenas 1 voto por Voter ID
                     if (board.votedIds.contains(voterId)) {
                         sendJsonResponse(exchange, 400, "{\"error\":\"Você já votou nesta rodada!\"}");
                         return;
@@ -499,7 +688,7 @@ public class VotacaoFilmeServer {
 
                     if (id >= 0 && id < board.votes.size()) {
                         board.votes.get(id).incrementAndGet();
-                        board.votedIds.add(voterId); // Registra o ID do visitante
+                        board.votedIds.add(voterId);
                         
                         saveBoardData(board);
                         sendJsonResponse(exchange, 200, getStateJson(board, voterId));
@@ -533,7 +722,6 @@ public class VotacaoFilmeServer {
                     return;
                 }
 
-                // Determinar o filme vencedor (primeiro em caso de empate)
                 int maxVotes = -1;
                 int winnerIdx = -1;
                 for (int i = 0; i < board.votes.size(); i++) {
@@ -546,9 +734,8 @@ public class VotacaoFilmeServer {
 
                 if (winnerIdx != -1) {
                     String winner = board.movies.get(winnerIdx);
-                    board.watched.add(winner); // Move para a lista de assistidos
+                    board.watched.add(winner);
                     
-                    // Limpa filmes ativos e lista de votantes
                     board.movies.clear();      
                     board.votes.clear();
                     board.votedIds.clear();
@@ -581,7 +768,7 @@ public class VotacaoFilmeServer {
                 board.votes.clear();
                 board.votedIds.clear();
 
-                saveBoardData(board); // Salva mantendo o histórico de assistidos
+                saveBoardData(board);
 
                 sendJsonResponse(exchange, 200, getStateJson(board, ""));
             } else {
