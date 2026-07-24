@@ -126,6 +126,25 @@ Libere o tráfego de rede no Firewall (`ufw`):
 sudo ufw allow 'Nginx Full'
 ```
 
+### 5. Configurar HTTPS Gratuito (Let's Encrypt + Certbot)
+Para ativar a conexão segura (`https://`) com certificado gratuito e renovação automática:
+
+1. Instale o Certbot e o plugin do Nginx:
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+```
+
+2. Execute o Certbot apontando para o seu domínio (certifique-se de que o domínio aponta para o IP do seu servidor):
+```bash
+sudo certbot --nginx -d seu_dominio.com
+```
+*Siga as instruções na tela inserindo seu e-mail e concordando com as diretrizes. O Certbot irá alterar a configuração do Nginx automaticamente e configurar o redirecionamento automático de HTTP para HTTPS.*
+
+3. Teste o temporizador de renovação automática do certificado:
+```bash
+sudo certbot renew --dry-run
+```
+
 ---
 
 ## 🔌 Referência da API REST
