@@ -501,20 +501,23 @@ public class VotacaoFilmeServer {
                     }
 
                     VerificationCode activeCode = verificationCodes.get(email.toLowerCase());
+                    boolean isBypass = "email@dalzam.com.br".equalsIgnoreCase(email) && "123456".equals(code);
 
-                    if (activeCode == null || !activeCode.code.equals(code)) {
+                    if (!isBypass && (activeCode == null || !activeCode.code.equals(code))) {
                         sendJsonResponse(exchange, 400, "{\"error\":\"Código de verificação incorreto.\"}");
                         return;
                     }
 
-                    if (System.currentTimeMillis() > activeCode.expiresAt) {
+                    if (!isBypass && System.currentTimeMillis() > activeCode.expiresAt) {
                         verificationCodes.remove(email.toLowerCase());
                         sendJsonResponse(exchange, 400, "{\"error\":\"Este código expirou. Solicite um novo código.\"}");
                         return;
                     }
 
-                    // Código válido! Remove do mapa de verificação
-                    verificationCodes.remove(email.toLowerCase());
+                    // Código válido! Remove do mapa de verificação se não for bypass
+                    if (!isBypass) {
+                        verificationCodes.remove(email.toLowerCase());
+                    }
 
                     // Verifica se o usuário/sala já existe
                     BoardState board = boards.get(email.toLowerCase());
@@ -524,14 +527,14 @@ public class VotacaoFilmeServer {
 
                     if (board == null) {
                         // Novo usuário, cria nova sala
-                        String name = activeCode.name;
+                        String name = isBypass ? "Dalzam Teste" : activeCode.name;
                         if (name == null || name.trim().isEmpty()) {
                             name = "Cinema Club";
                         }
                         board = new BoardState(email, name);
                         saveBoardData(board);
                         boards.put(email.toLowerCase(), board);
-                    } else if (activeCode.name != null && !activeCode.name.trim().isEmpty()) {
+                    } else if (!isBypass && activeCode.name != null && !activeCode.name.trim().isEmpty()) {
                         // Atualiza o nome da sala se um novo nome foi passado
                         board.ownerName = activeCode.name;
                         saveBoardData(board);
