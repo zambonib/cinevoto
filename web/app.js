@@ -190,7 +190,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ email: email, name: name })
             });
 
-            const data = await response.json();
+            const responseText = await response.text();
+            let data = {};
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                console.error("Servidor retornou resposta não-JSON:", responseText);
+                throw new Error(`Erro do Servidor: ${response.status} ${response.statusText}`);
+            }
+            
             showLoading(false);
 
             if (!response.ok) {
@@ -209,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
             verificationCodeInput.value = '';
             verificationCodeInput.focus();
         } catch (error) {
-            alert('Erro de conexão ao solicitar o código.');
+            alert(error.message && error.message.includes('Erro do Servidor') ? error.message : 'Erro de conexão ao solicitar o código.');
             showLoading(false);
         }
     });
@@ -232,7 +240,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ email: tempEmail, code: code })
             });
 
-            const data = await response.json();
+            const responseText = await response.text();
+            let data = {};
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                console.error("Servidor retornou resposta não-JSON:", responseText);
+                throw new Error(`Erro do Servidor: ${response.status} ${response.statusText}`);
+            }
+            
             showLoading(false);
 
             if (!response.ok) {
@@ -247,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Redireciona para a sala criada/acessada
             window.location.search = `?board=${encodeURIComponent(data.ownerEmail)}`;
         } catch (error) {
-            alert('Erro ao validar o código.');
+            alert(error.message && error.message.includes('Erro do Servidor') ? error.message : 'Erro ao validar o código.');
             showLoading(false);
         }
     });
