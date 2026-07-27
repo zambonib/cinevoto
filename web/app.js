@@ -1,19 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Endpoints da API
-    const API_SOLICITAR_CODIGO = '/api/solicitar-codigo';
-    const API_CONFIRMAR_CODIGO = '/api/confirmar-codigo';
-    const API_ESTADO = '/api/estado';
-    const API_INICIAR = '/api/iniciar';
-    const API_VOTAR = '/api/votar';
-    const API_FINALIZAR = '/api/finalizar';
-    const API_RESET = '/api/reset';
+    // Rotas da nossa API
+    const API_BASE = '/api';
+    const API_SOLICITAR_CODIGO = `${API_BASE}/solicitar-codigo`;
+    const API_CONFIRMAR_CODIGO = `${API_BASE}/confirmar-codigo`;
+    const API_ESTADO = `${API_BASE}/estado`;
+    const API_INICIAR = `${API_BASE}/iniciar`;
+    const API_VOTAR = `${API_BASE}/votar`;
+    const API_FINALIZAR = `${API_BASE}/finalizar`;
+    const API_RESET = `${API_BASE}/reset`;
 
-    // Elementos da Interface
+    // Pegando a galera do DOM (elementos da interface)
     const landingSection = document.getElementById('landing-section');
     const appLayout = document.getElementById('app-layout');
     const loadingSpinner = document.getElementById('loading-spinner');
     
-    // Área de Apresentação & Autenticação
+    // Seções de apresentação e login/cadastro
     const presentationArea = document.getElementById('presentation-area');
     const btnShowRegister = document.getElementById('btn-show-register');
     const btnShowLogin = document.getElementById('btn-show-login');
@@ -95,17 +96,17 @@ document.addEventListener('DOMContentLoaded', () => {
         usuarioVotou: false
     };
 
-    // Gera ou obtém o identificador exclusivo deste navegador
+    // Pega ou cria um ID único pra este navegador (pro controle dos votos)
     function getVoterId() {
         let voterId = localStorage.getItem('cinevoto_voter_id');
         if (!voterId) {
-            voterId = 'usr_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            voterId = 'voter_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
             localStorage.setItem('cinevoto_voter_id', voterId);
         }
         return voterId;
     }
 
-    // Controle de exibição do Loading
+    // Funçãozinha pra mostrar ou esconder a rodinha de carregando
     function showLoading(show) {
         if (loadingSpinner) {
             if (show) {
@@ -179,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
         authFormArea.classList.remove('hidden');
     });
 
-    // Envio do formulário inicial (Solicita código OTP)
+    // Dispara o pedido do código de verificação pro e-mail do usuário
     authForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = loginEmailInput.value.trim();
@@ -233,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Confirmação do código OTP
+    // Valida o código de 6 dígitos digitado pelo usuário
     verificationForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const code = verificationCodeInput.value.trim();
@@ -365,7 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Renderiza a lista de filmes ativos e atualiza a barra de progresso
+    // Monta os cards dos filmes e calcula as barrinhas de progresso ao vivo
     function renderVotingSection() {
         moviesList.innerHTML = '';
         
@@ -434,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Renderiza a lista de filmes assistidos (histórico à direita)
+    // Monta a lista dos filmes campeões das rodadas anteriores (histórico)
     function renderWatchedList() {
         watchedList.innerHTML = '';
 
@@ -629,7 +630,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    // Escape simples contra XSS
+    // Limpa o texto pra evitar qualquer injeção de código chata (XSS)
     function escapeHtml(text) {
         const map = {
             '&': '&amp;',

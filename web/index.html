@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <!-- FontAwesome for icons -->
+    <!-- Ícones do FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -28,10 +28,10 @@
             <p class="logo-subtitle">A votação perfeita para a noite de cinema</p>
         </header>
 
-        <!-- Landing Page (Presentation, Login, Register, Verification) -->
+        <!-- Tela de apresentação, login, cadastro e código -->
         <section id="landing-section" class="landing-section card">
             
-            <!-- 1. Presentation Area (Default landing) -->
+            <!-- 1. Tela inicial de apresentação -->
             <div id="presentation-area" class="presentation-area">
                 <div class="landing-hero">
                     <i class="fa-solid fa-popcorn hero-icon animate-pulse"></i>
@@ -49,7 +49,7 @@
                 </div>
             </div>
 
-            <!-- 2. Authentication Form Area (Hidden by default) -->
+            <!-- 2. Formulário de login/cadastro (inicia escondido) -->
             <div id="auth-form-area" class="auth-form-area hidden">
                 <h2 id="auth-title">Criar Nova Sala</h2>
                 <p id="auth-desc" class="auth-description">Insira seus dados para receber o código de validação:</p>
@@ -74,7 +74,7 @@
                 </form>
             </div>
 
-            <!-- 3. Verification Code Area (Hidden by default) -->
+            <!-- 3. Campo pra digitar o código de verificação -->
             <div id="verification-code-area" class="verification-code-area hidden">
                 <i class="fa-solid fa-envelope-open-text verification-icon"></i>
                 <h2>Validação de E-mail</h2>
@@ -101,12 +101,12 @@
             
         </section>
 
-        <!-- Main Layout: 3 Columns Grid (Hidden by default, shown when board is loaded) -->
+        <!-- Layout principal em 3 colunas (aparece quando carrega a sala) -->
         <div id="app-layout" class="app-layout hidden">
             
-            <!-- Left Column: Controls and Status -->
+            <!-- Coluna da esquerda: perfil e controles -->
             <aside class="layout-col col-left">
-                <!-- User Profile / Board Info -->
+                <!-- Perfil do usuário e dados da sala -->
                 <div class="card board-info-card">
                     <div class="board-profile">
                         <div class="profile-avatar">
@@ -124,7 +124,7 @@
                     </div>
                 </div>
 
-                <!-- Admin Controls Card (only visible to board owner) -->
+                <!-- Controles do dono da sala (só o dono vê) -->
                 <div id="admin-controls-card" class="card status-card hidden">
                     <h3><i class="fa-solid fa-circle-nodes"></i> Painel do Proprietário</h3>
                     <p class="status-description">Você é o dono desta sala. Compartilhe o link com amigos e encerre a votação quando quiser.</p>
@@ -136,7 +136,7 @@
                     <button id="reset-all-btn" class="btn btn-danger"><i class="fa-solid fa-xmark"></i> Cancelar Votação</button>
                 </div>
 
-                <!-- Share Room Card -->
+                <!-- Card pra copiar e mandar o link pros amigos -->
                 <div class="card share-card">
                     <h3><i class="fa-solid fa-share-nodes"></i> Compartilhar Sala</h3>
                     <p>Copie o link da sala abaixo e envie para os seus amigos votarem!</p>
@@ -147,9 +147,9 @@
                 </div>
             </aside>
 
-            <!-- Center Column: Main Active Content -->
+            <!-- Coluna do meio: votação e formulário principal -->
             <main class="layout-col col-center">
-                <!-- Section 1: Setup Form (shown when inactive and user is the owner) -->
+                <!-- Seção 1: Escolha dos 3 filmes pra iniciar (só pro dono) -->
                 <section id="setup-section" class="setup-area card hidden">
                     <div class="setup-header">
                         <h2><i class="fa-solid fa-film"></i> Configurar Nova Rodada</h2>
@@ -172,7 +172,7 @@
                     </form>
                 </section>
 
-                <!-- Section 1b: Visitor Waiting Screen -->
+                <!-- Seção 1b: Tela de espera pros visitantes -->
                 <section id="visitor-wait-section" class="visitor-wait-area card hidden">
                     <i class="fa-solid fa-ticket-simple wait-icon"></i>
                     <h2>Aguardando Nova Rodada</h2>
@@ -180,7 +180,7 @@
                     <p class="wait-subtext">Atualize a página em instantes ou crie a sua própria sala para votar!</p>
                 </section>
 
-                <!-- Section 2: Voting Interface (shown when active) -->
+                <!-- Seção 2: Tela de votação com os cards de filmes -->
                 <section id="voting-section" class="voting-area hidden">
                     <div id="winner-banner" class="winner-card hidden">
                         <div class="winner-glow"></div>
@@ -202,18 +202,18 @@
                             <span id="total-votes-badge" class="total-badge">Total: 0 votos</span>
                         </div>
                         <div id="movies-list" class="movies-list">
-                            <!-- injected by JS -->
+                            <!-- Os filmes são colocados aqui pelo JavaScript -->
                         </div>
                     </div>
                 </section>
 
-                <!-- Loading Spinner State -->
+                <!-- Animaçãozinha de carregando (spinner) -->
                 <div id="loading-spinner" class="loading-state">
                     <i class="fa-solid fa-spinner fa-spin"></i> Carregando dados...
                 </div>
             </main>
 
-            <!-- Right Column: Watched / Winner History -->
+            <!-- Coluna da direita: lista de filmes que já venceram -->
             <aside class="layout-col col-right">
                 <div class="card watched-card">
                     <h3><i class="fa-solid fa-ticket"></i> Filmes Assistidos</h3>
@@ -230,7 +230,7 @@
             
         </div>
 
-        <!-- Footer -->
+        <!-- Rodapé -->
         <footer class="footer">
             <p>CineVoto © 2026 - O seu guia perfeito para noites de cinema 🍿🎬</p>
         </footer>

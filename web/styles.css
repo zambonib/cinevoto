@@ -1,4 +1,4 @@
-/* Reset & Variáveis */
+/* Reset básico e variáveis de cores e fontes */
 :root {
     --bg-main: hsl(230, 25%, 8%);
     --bg-card: rgba(20, 20, 35, 0.65);
@@ -38,7 +38,7 @@ body {
     position: relative;
 }
 
-/* Background Decorativo */
+/* Fundo bonitão com círculos decorativos */
 .background-decor {
     position: fixed;
     top: 0;
@@ -133,7 +133,7 @@ body {
     font-weight: 300;
 }
 
-/* Landing Section */
+/* Seção inicial de apresentação */
 .landing-section {
     max-width: 620px;
     margin: 2rem auto;
@@ -207,7 +207,7 @@ body {
     }
 }
 
-/* Auth / Register forms */
+/* Formulários de login e cadastro */
 .auth-form-area {
     display: flex;
     flex-direction: column;
@@ -235,7 +235,7 @@ body {
     gap: 1.25rem;
 }
 
-/* Verification Code Section */
+/* Área do código de verificação */
 .verification-code-area {
     display: flex;
     flex-direction: column;
@@ -268,7 +268,7 @@ body {
     font-size: 1.05rem;
 }
 
-/* Digits input customization */
+/* Estilo do campo numérico de código */
 .code-input-group input {
     text-align: center;
     font-size: 2rem !important;
@@ -278,7 +278,7 @@ body {
     color: var(--accent-neon-cyan) !important;
 }
 
-/* Testing logs notice box */
+/* Caixinha de aviso pros testes locais */
 .testing-notice {
     display: flex;
     align-items: center;
@@ -299,7 +299,7 @@ body {
     flex-shrink: 0;
 }
 
-/* Layout Columns Grid */
+/* Grid das 3 colunas da sala */
 .app-layout {
     display: grid;
     grid-template-columns: 300px 1fr 300px;
@@ -317,7 +317,7 @@ body {
     .col-right { order: 2; }
 }
 
-/* Glass Cards */
+/* Cards no estilo Glassmorphic (vidro translúcido) */
 .card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -333,14 +333,14 @@ body {
     box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3);
 }
 
-/* Sidebar Left: Profile and Controls */
+/* Coluna esquerda: Perfil e controles da sala */
 .col-left {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
 }
 
-/* Profile Card */
+/* Card do perfil do usuário */
 .board-info-card {
     display: flex;
     flex-direction: column;
@@ -394,7 +394,7 @@ body {
     gap: 0.75rem;
 }
 
-/* Share Link Group */
+/* Grupo do link de compartilhamento */
 .share-card h3 {
     font-size: 1.15rem;
     font-weight: 600;
@@ -456,7 +456,7 @@ body {
     box-shadow: var(--glow-cyan);
 }
 
-/* Sidebar Left Specifics */
+/* Ajustes da barra lateral esquerda */
 .col-left h3 {
     font-size: 1.15rem;
     font-weight: 600;
@@ -484,7 +484,7 @@ body {
     gap: 0.75rem;
 }
 
-/* Setup/Configuration Form */
+/* Formulário de cadastro dos 3 filmes */
 .setup-area {
     display: flex;
     flex-direction: column;
@@ -553,7 +553,7 @@ body {
     color: var(--accent-neon-pink);
 }
 
-/* Visitor Waiting Screen */
+/* Tela de espera pros visitantes */
 .visitor-wait-area {
     display: flex;
     flex-direction: column;
@@ -592,7 +592,7 @@ body {
     100% { transform: translateY(-8px); }
 }
 
-/* Winner Card Dashboard */
+/* Painel do filme vencedor da rodada */
 .winner-card {
     position: relative;
     background: linear-gradient(135deg, rgba(255, 46, 151, 0.15) 0%, rgba(0, 242, 254, 0.15) 100%);
@@ -654,7 +654,7 @@ body {
     text-shadow: var(--glow-cyan);
 }
 
-/* Movies List Area */
+/* Lista de filmes ativos pra votação */
 .movies-container {
     display: flex;
     flex-direction: column;
@@ -696,7 +696,7 @@ body {
     gap: 1rem;
 }
 
-/* Individual Movie Card */
+/* Card individual de cada filme */
 .movie-item {
     display: flex;
     flex-direction: column;
@@ -752,7 +752,7 @@ body {
     border: 1px solid rgba(0, 242, 254, 0.15);
 }
 
-/* Progress bar inside Movie Card */
+/* Barra de progresso dos votos */
 .progress-container {
     width: 100%;
     height: 8px;
@@ -771,13 +771,13 @@ body {
     box-shadow: var(--glow-cyan);
 }
 
-/* Button & Vote Action */
+/* Botão de votar no filme */
 .vote-btn-container {
     display: flex;
     justify-content: flex-end;
 }
 
-/* Sidebar Right: Watched Movies List */
+/* Coluna direita: Histórico de filmes assistidos */
 .col-right {
     display: flex;
     flex-direction: column;
@@ -813,7 +813,7 @@ body {
     padding-right: 0.25rem;
 }
 
-/* Custom Scrollbar for watched list */
+/* Barra de rolagem estilizada pro histórico */
 .watched-list::-webkit-scrollbar {
     width: 4px;
 }
@@ -884,7 +884,7 @@ body {
     line-height: 1.4;
 }
 
-/* Loading State Spinner */
+/* Animação do carregando (Spinner) */
 .loading-state {
     display: flex;
     justify-content: center;
@@ -895,7 +895,7 @@ body {
     font-size: 1.1rem;
 }
 
-/* Buttons System */
+/* Sistema de botões da interface */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -993,7 +993,7 @@ body {
     color: #fff;
 }
 
-/* Footer styling */
+/* Estilos do rodapé */
 .footer {
     text-align: center;
     padding: 2rem 0;
@@ -1002,7 +1002,7 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
-/* Animations */
+/* Animações e efeitos visuais */
 @keyframes spin-subtle {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
@@ -1017,7 +1017,7 @@ body {
     display: none !important;
 }
 
-/* Micro-interaction highlight */
+/* Destaque de micro-interações */
 .pulse-highlight {
     animation: flash-highlight 0.5s ease-out;
 }
