@@ -79,6 +79,14 @@ TimeoutStopSec=10
 Restart=on-failure
 RestartSec=5
 
+# Configurações de Envio de E-mail (SMTP)
+# Substitua pelos seus dados (Para Gmail/Google Workspace, use uma Senha de App de 16 caracteres)
+Environment="SMTP_HOST=smtp.gmail.com"
+Environment="SMTP_PORT=587"
+Environment="SMTP_USER=seu_email@dominio.com"
+Environment="SMTP_PASS=sua_senha_de_app"
+Environment="SMTP_FROM=seu_email@dominio.com"
+
 [Install]
 WantedBy=multi-user.target
 ```

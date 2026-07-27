@@ -1,0 +1,28 @@
+[Unit]
+Description=Servidor CineVoto
+After=network.target
+
+[Service]
+# Altere para o usuário de sistema local que roda a aplicação
+User=seu_usuario
+WorkingDirectory=/var/www/cinevoto
+ExecStart=/var/www/cinevoto/run.sh
+SuccessExitStatus=143
+TimeoutStopSec=10
+Restart=on-failure
+RestartSec=5
+
+# =====================================================================
+# CONFIGURAÇÕES DE ENVIO DE E-MAIL (SMTP - JavaMail)
+# =====================================================================
+# Substitua os valores abaixo com suas credenciais de servidor de e-mail.
+# No caso de Gmail / Google Workspace, é obrigatório gerar uma "Senha de App" (16 caracteres) 
+# no painel do Google em: Segurança -> Verificação em Duas Etapas -> Senhas de App.
+Environment="SMTP_HOST=smtp.gmail.com"
+Environment="SMTP_PORT=587"
+Environment="SMTP_USER=seu_email@dominio.com.br"
+Environment="SMTP_PASS=sua_senha_de_app"
+Environment="SMTP_FROM=seu_email@dominio.com.br"
+
+[Install]
+WantedBy=multi-user.target
