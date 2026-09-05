@@ -1,4 +1,4 @@
-/* Reset básico e variáveis de cores e fontes */
+/* Reset & Variáveis */
 :root {
     --bg-main: hsl(230, 25%, 8%);
     --bg-card: rgba(20, 20, 35, 0.65);
@@ -38,7 +38,7 @@ body {
     position: relative;
 }
 
-/* Fundo bonitão com círculos decorativos */
+/* Background Decorativo */
 .background-decor {
     position: fixed;
     top: 0;
@@ -93,7 +93,7 @@ body {
 /* Header */
 .header {
     text-align: center;
-    padding: 1rem 0;
+    padding: 1.5rem 0;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -133,176 +133,10 @@ body {
     font-weight: 300;
 }
 
-/* Seção inicial de apresentação */
-.landing-section {
-    max-width: 620px;
-    margin: 2rem auto;
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-    padding: 2.5rem;
-}
-
-.presentation-area {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-}
-
-.landing-hero {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.25rem;
-    text-align: center;
-}
-
-.hero-icon {
-    font-size: 4rem;
-    background: linear-gradient(135deg, var(--accent-neon-pink) 0%, var(--accent-neon-cyan) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 0 12px rgba(0, 242, 254, 0.4));
-    margin-bottom: 0.5rem;
-}
-
-.animate-pulse {
-    animation: pulse-icon 2s infinite alternate;
-}
-
-@keyframes pulse-icon {
-    0% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(255, 46, 151, 0.4)); }
-    100% { transform: scale(1.08); filter: drop-shadow(0 0 20px rgba(0, 242, 254, 0.6)); }
-}
-
-.landing-hero h2 {
-    font-size: 2.1rem;
-    font-weight: 800;
-    line-height: 1.2;
-}
-
-.teaser-text {
-    font-size: 1.05rem;
-    color: var(--text-secondary);
-    line-height: 1.7;
-    text-align: justify;
-}
-
-.teaser-text strong {
-    color: #fff;
-    border-bottom: 1.5px solid var(--accent-neon-pink);
-    padding-bottom: 2px;
-}
-
-.landing-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    width: 100%;
-}
-
-@media (min-width: 480px) {
-    .landing-actions {
-        flex-direction: row;
-    }
-}
-
-/* Formulários de login e cadastro */
-.auth-form-area {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 0.75rem;
-    width: 100%;
-}
-
-.auth-form-area h2 {
-    font-size: 1.8rem;
-    font-weight: 700;
-}
-
-.auth-description {
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-    margin-bottom: 1.25rem;
-}
-
-.login-form {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-}
-
-/* Área do código de verificação */
-.verification-code-area {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 1.25rem;
-    width: 100%;
-}
-
-.verification-icon {
-    font-size: 3.5rem;
-    color: var(--accent-neon-cyan);
-    text-shadow: var(--glow-cyan);
-    margin-bottom: 0.5rem;
-}
-
-.verification-code-area h2 {
-    font-size: 1.8rem;
-    font-weight: 700;
-}
-
-.verification-desc {
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-    line-height: 1.5;
-}
-
-.verification-desc strong {
-    color: #fff;
-    font-size: 1.05rem;
-}
-
-/* Estilo do campo numérico de código */
-.code-input-group input {
-    text-align: center;
-    font-size: 2rem !important;
-    letter-spacing: 0.4rem;
-    font-weight: 800;
-    padding-left: 2.75rem !important;
-    color: var(--accent-neon-cyan) !important;
-}
-
-/* Caixinha de aviso pros testes locais */
-.testing-notice {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    background: rgba(0, 242, 254, 0.06);
-    border: 1px solid rgba(0, 242, 254, 0.15);
-    padding: 0.8rem 1rem;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    text-align: left;
-    line-height: 1.4;
-}
-
-.testing-notice i {
-    color: var(--accent-neon-cyan);
-    font-size: 1.1rem;
-    flex-shrink: 0;
-}
-
-/* Grid das 3 colunas da sala */
+/* Layout Columns Grid */
 .app-layout {
     display: grid;
-    grid-template-columns: 300px 1fr 300px;
+    grid-template-columns: 280px 1fr 300px;
     gap: 2rem;
     align-items: start;
 }
@@ -317,7 +151,7 @@ body {
     .col-right { order: 2; }
 }
 
-/* Cards no estilo Glassmorphic (vidro translúcido) */
+/* Glass Cards */
 .card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -333,130 +167,13 @@ body {
     box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.3);
 }
 
-/* Coluna esquerda: Perfil e controles da sala */
+/* Sidebar Left Specifics */
 .col-left {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
 }
 
-/* Card do perfil do usuário */
-.board-info-card {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-}
-
-.board-profile {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-}
-
-.profile-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, rgba(255, 46, 151, 0.15) 0%, rgba(0, 242, 254, 0.15) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--accent-neon-cyan);
-    font-size: 1.25rem;
-    box-shadow: var(--glow-cyan);
-}
-
-.profile-details {
-    overflow: hidden;
-}
-
-.profile-details h4 {
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: #fff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.profile-details p {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.board-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-/* Grupo do link de compartilhamento */
-.share-card h3 {
-    font-size: 1.15rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.share-card h3 i {
-    color: var(--accent-neon-cyan);
-}
-
-.share-card p {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    margin-bottom: 1rem;
-    line-height: 1.4;
-}
-
-.share-input-group {
-    display: flex;
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    overflow: hidden;
-    transition: var(--transition-smooth);
-}
-
-.share-input-group:focus-within {
-    border-color: var(--accent-neon-cyan);
-    box-shadow: var(--glow-cyan);
-}
-
-.share-input-group input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--text-secondary);
-    padding: 0.75rem 1rem;
-    font-family: var(--font-outfit);
-    font-size: 0.85rem;
-}
-
-.share-input-group button {
-    background: var(--accent-neon-cyan);
-    border: none;
-    outline: none;
-    color: #000;
-    padding: 0 1.1rem;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: var(--transition-smooth);
-}
-
-.share-input-group button:hover {
-    background: #fff;
-    box-shadow: var(--glow-cyan);
-}
-
-/* Ajustes da barra lateral esquerda */
 .col-left h3 {
     font-size: 1.15rem;
     font-weight: 600;
@@ -467,7 +184,7 @@ body {
 }
 
 .col-left h3 i {
-    color: var(--accent-neon-pink);
+    color: var(--accent-neon-cyan);
 }
 
 .status-description {
@@ -484,7 +201,30 @@ body {
     gap: 0.75rem;
 }
 
-/* Formulário de cadastro dos 3 filmes */
+.help-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-top: 0.5rem;
+}
+
+.help-list li {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    line-height: 1.4;
+}
+
+.help-list li i {
+    color: var(--accent-neon-pink);
+    font-size: 0.7rem;
+    margin-top: 0.25rem;
+}
+
+/* Setup/Configuration Form */
 .setup-area {
     display: flex;
     flex-direction: column;
@@ -520,7 +260,6 @@ body {
     position: relative;
     display: flex;
     align-items: center;
-    width: 100%;
 }
 
 .input-group input {
@@ -553,46 +292,7 @@ body {
     color: var(--accent-neon-pink);
 }
 
-/* Tela de espera pros visitantes */
-.visitor-wait-area {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 3rem 2rem;
-    gap: 1rem;
-}
-
-.wait-icon {
-    font-size: 4rem;
-    color: var(--accent-neon-pink);
-    text-shadow: var(--glow-pink);
-    animation: bounce-subtle 3s infinite alternate;
-}
-
-.visitor-wait-area h2 {
-    font-size: 1.6rem;
-    font-weight: 700;
-}
-
-.visitor-wait-area p {
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-    line-height: 1.5;
-}
-
-.wait-subtext {
-    font-size: 0.8rem !important;
-    opacity: 0.7;
-    margin-top: 0.5rem;
-}
-
-@keyframes bounce-subtle {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(-8px); }
-}
-
-/* Painel do filme vencedor da rodada */
+/* Winner Card Dashboard */
 .winner-card {
     position: relative;
     background: linear-gradient(135deg, rgba(255, 46, 151, 0.15) 0%, rgba(0, 242, 254, 0.15) 100%);
@@ -654,7 +354,7 @@ body {
     text-shadow: var(--glow-cyan);
 }
 
-/* Lista de filmes ativos pra votação */
+/* Movies List Area */
 .movies-container {
     display: flex;
     flex-direction: column;
@@ -696,7 +396,7 @@ body {
     gap: 1rem;
 }
 
-/* Card individual de cada filme */
+/* Individual Movie Card */
 .movie-item {
     display: flex;
     flex-direction: column;
@@ -752,7 +452,7 @@ body {
     border: 1px solid rgba(0, 242, 254, 0.15);
 }
 
-/* Barra de progresso dos votos */
+/* Progress bar inside Movie Card */
 .progress-container {
     width: 100%;
     height: 8px;
@@ -771,13 +471,13 @@ body {
     box-shadow: var(--glow-cyan);
 }
 
-/* Botão de votar no filme */
+/* Button & Vote Action */
 .vote-btn-container {
     display: flex;
     justify-content: flex-end;
 }
 
-/* Coluna direita: Histórico de filmes assistidos */
+/* Sidebar Right: Watched Movies List */
 .col-right {
     display: flex;
     flex-direction: column;
@@ -813,7 +513,7 @@ body {
     padding-right: 0.25rem;
 }
 
-/* Barra de rolagem estilizada pro histórico */
+/* Custom Scrollbar for watched list */
 .watched-list::-webkit-scrollbar {
     width: 4px;
 }
@@ -863,6 +563,21 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     opacity: 0.9;
+    flex: 1;
+}
+
+.watched-badge {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--accent-neon-purple);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-left: auto;
 }
 
 .watched-empty {
@@ -884,7 +599,7 @@ body {
     line-height: 1.4;
 }
 
-/* Animação do carregando (Spinner) */
+/* Loading State Spinner */
 .loading-state {
     display: flex;
     justify-content: center;
@@ -895,7 +610,7 @@ body {
     font-size: 1.1rem;
 }
 
-/* Sistema de botões da interface */
+/* Buttons System */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -928,28 +643,6 @@ body {
     transform: translateY(1px);
 }
 
-.btn-secondary {
-    background: rgba(255, 255, 255, 0.06);
-    color: #fff;
-    border: 1px solid var(--border-color);
-}
-
-.btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.12);
-}
-
-.btn-danger-outline {
-    background: transparent;
-    color: var(--accent-neon-red);
-    border: 1px solid rgba(255, 75, 75, 0.3);
-}
-
-.btn-danger-outline:hover {
-    background: var(--accent-neon-red);
-    color: #fff;
-    box-shadow: 0 0 15px rgba(255, 75, 75, 0.4);
-}
-
 .btn-vote {
     width: auto;
     padding: 0.45rem 1.25rem;
@@ -980,20 +673,7 @@ body {
     border-color: var(--accent-neon-red);
 }
 
-.btn-link {
-    background: transparent;
-    color: var(--accent-neon-cyan);
-    font-size: 0.9rem;
-    padding: 0.5rem;
-    width: auto;
-}
-
-.btn-link:hover {
-    text-decoration: underline;
-    color: #fff;
-}
-
-/* Estilos do rodapé */
+/* Footer styling */
 .footer {
     text-align: center;
     padding: 2rem 0;
@@ -1002,7 +682,7 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
-/* Animações e efeitos visuais */
+/* Animations */
 @keyframes spin-subtle {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
@@ -1017,7 +697,7 @@ body {
     display: none !important;
 }
 
-/* Destaque de micro-interações */
+/* Micro-interaction highlight */
 .pulse-highlight {
     animation: flash-highlight 0.5s ease-out;
 }
@@ -1028,7 +708,7 @@ body {
     100% { box-shadow: 0 0 0 0 rgba(0, 242, 254, 0); }
 }
 
-/* Novo Alerta de Voto Concluído */
+/* Alerta de voto concluído */
 .voted-alert-box {
     display: flex;
     align-items: center;
@@ -1044,17 +724,14 @@ body {
     box-shadow: 0 4px 15px rgba(0, 255, 128, 0.05);
     animation: slide-in 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
 }
-
-.voted-alert-box i {
-    font-size: 1.2rem;
-}
+.voted-alert-box i { font-size: 1.2rem; }
 
 @keyframes slide-in {
     from { transform: translateY(-10px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
 
-/* Estilo do Botão de Voto Desabilitado */
+/* Botão de voto desabilitado */
 .btn-vote:disabled {
     background: rgba(255, 255, 255, 0.03) !important;
     border-color: rgba(255, 255, 255, 0.1) !important;
@@ -1064,3 +741,511 @@ body {
     box-shadow: none !important;
     opacity: 0.5;
 }
+
+/* ============================================================
+   TELA DE LOGIN
+============================================================ */
+.login-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.login-card {
+    position: relative;
+    z-index: 2;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    padding: 3rem 2.5rem;
+    max-width: 420px;
+    width: 90%;
+    text-align: center;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.login-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.login-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    font-weight: 300;
+}
+
+.login-desc {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-width: 320px;
+}
+
+.btn-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.85rem 1.5rem;
+    background: #fff;
+    color: #3c4043;
+    font-family: var(--font-outfit);
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    margin-top: 0.5rem;
+}
+.btn-google:hover {
+    background: #f1f3f4;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    transform: translateY(-1px);
+}
+.google-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.login-footer {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.3);
+    line-height: 1.4;
+    max-width: 300px;
+}
+
+/* ============================================================
+   TELA HOME
+============================================================ */
+.container-home {
+    min-height: 100vh;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+/* Quando não há user-info, centraliza o logo */
+.header:has(.logo-area:only-child) .logo-area {
+    margin: 0 auto;
+}
+
+.home-actions {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+    padding: 2rem 0;
+}
+
+.home-card {
+    flex: 1;
+    min-width: 260px;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    text-align: center;
+    padding: 2.5rem 2rem;
+}
+
+.home-card-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255, 46, 151, 0.15), rgba(0, 242, 254, 0.15));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    color: var(--accent-neon-pink);
+    text-shadow: var(--glow-pink);
+}
+
+.home-card h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+}
+
+.home-card p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.home-card-divider {
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    padding: 1rem 0;
+}
+
+.join-form {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.join-form input {
+    flex: 1;
+    min-width: 100px;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: #fff;
+    font-family: var(--font-outfit);
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    text-align: center;
+    outline: none;
+    transition: var(--transition-smooth);
+}
+.join-form input:focus {
+    border-color: var(--accent-neon-cyan);
+    box-shadow: var(--glow-cyan);
+}
+
+.join-form .btn {
+    width: auto;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   USER INFO (header de sala e home)
+============================================================ */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.user-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    object-fit: cover;
+}
+
+.user-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.btn-logout {
+    width: auto;
+    padding: 0.5rem 0.75rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+.btn-logout:hover {
+    background: rgba(255, 75, 75, 0.1);
+    color: var(--accent-neon-red);
+    border-color: rgba(255, 75, 75, 0.2);
+}
+
+/* ============================================================
+   ROOM CODE BADGE
+============================================================ */
+.room-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.65rem;
+    background: rgba(0, 242, 254, 0.08);
+    border: 1px solid rgba(0, 242, 254, 0.2);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--accent-neon-cyan);
+    letter-spacing: 2px;
+    text-shadow: var(--glow-cyan);
+}
+
+/* ============================================================
+   INVITE BANNER
+============================================================ */
+.invite-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    background: rgba(0, 242, 254, 0.05);
+    border: 1px solid rgba(0, 242, 254, 0.15);
+    border-radius: 12px;
+    padding: 0.9rem 1.25rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+.invite-banner i { color: var(--accent-neon-cyan); }
+.invite-banner strong { color: var(--accent-neon-cyan); letter-spacing: 2px; font-size: 1rem; }
+
+.invite-link-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.4rem 0.75rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-family: monospace;
+    outline: none;
+}
+
+.btn-copy {
+    width: auto;
+    padding: 0.4rem 1rem;
+    background: rgba(0, 242, 254, 0.1);
+    border: 1px solid rgba(0, 242, 254, 0.2);
+    color: var(--accent-neon-cyan);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-family: var(--font-outfit);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.btn-copy:hover {
+    background: var(--accent-neon-cyan);
+    color: #000;
+}
+
+/* ============================================================
+   PAINEL DE VOTANTES (Admin)
+============================================================ */
+.voters-card h3 i { color: var(--accent-neon-green); }
+
+.voters-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 0.75rem;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.voters-empty {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.voter-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(0, 255, 128, 0.04);
+    border: 1px solid rgba(0, 255, 128, 0.1);
+    border-radius: 8px;
+}
+
+.voter-avatar-small {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+}
+
+.voter-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    overflow: hidden;
+}
+
+.voter-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.voter-film {
+    font-size: 0.75rem;
+    color: var(--accent-neon-green);
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.voter-info {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.6rem 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.voter-info i { color: var(--accent-neon-cyan); }
+
+/* ============================================================
+   AVATARES MINI NOS CARDS DE FILME
+============================================================ */
+.movie-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.voter-avatars-row {
+    display: flex;
+    align-items: center;
+}
+
+.voter-avatar-mini {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--bg-main);
+    margin-left: -8px;
+    transition: var(--transition-smooth);
+}
+.voter-avatar-mini:first-child { margin-left: 0; }
+.voter-avatar-mini:hover { transform: scale(1.2); z-index: 1; }
+
+/* ============================================================
+   WATCHED ITEM — versão com contagem de votos
+============================================================ */
+.watched-votes {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--accent-neon-purple);
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+/* ============================================================
+   SEÇÃO DE ESPERA (votante aguardando admin)
+============================================================ */
+.waiting-animation {
+    text-align: center;
+    padding: 2rem;
+    font-size: 3rem;
+    color: var(--accent-neon-pink);
+    opacity: 0.4;
+}
+
+/* ============================================================
+   TOAST NOTIFICATIONS
+============================================================ */
+.toast-container {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.85rem 1.25rem;
+    border-radius: 12px;
+    font-family: var(--font-outfit);
+    font-size: 0.9rem;
+    font-weight: 500;
+    backdrop-filter: blur(16px);
+    border: 1px solid;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    transform: translateX(120%);
+    transition: transform 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    pointer-events: all;
+    max-width: 360px;
+}
+.toast.toast-show {
+    transform: translateX(0);
+}
+.toast-success {
+    background: rgba(0, 200, 100, 0.12);
+    border-color: rgba(0, 200, 100, 0.3);
+    color: var(--accent-neon-green);
+}
+.toast-error {
+    background: rgba(255, 75, 75, 0.12);
+    border-color: rgba(255, 75, 75, 0.3);
+    color: var(--accent-neon-red);
+}
+.toast-info {
+    background: rgba(0, 242, 254, 0.08);
+    border-color: rgba(0, 242, 254, 0.2);
+    color: var(--accent-neon-cyan);
+}
+.toast-warning {
+    background: rgba(255, 200, 0, 0.08);
+    border-color: rgba(255, 200, 0, 0.2);
+    color: hsl(45, 100%, 60%);
+}
+
+/* ============================================================
+   RESPONSIVE ADJUSTMENTS
+============================================================ */
+@media (max-width: 600px) {
+    .logo-title { font-size: 2rem; }
+    .home-card { padding: 1.75rem 1.25rem; }
+    .home-actions { gap: 1rem; }
+    .toast-container { bottom: 1rem; right: 1rem; left: 1rem; }
+    .toast { max-width: 100%; }
+    .invite-banner { flex-direction: column; align-items: flex-start; }
+    .header { flex-direction: column; align-items: flex-start; }
+    .user-name { display: none; }
+}
+

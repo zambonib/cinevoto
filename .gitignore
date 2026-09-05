@@ -1,8 +1,16 @@
+﻿# Configuração sensível com chaves da API do Firebase (NÃO EXPOR)
+web/firebase-config.js
+firebase-config.js
+*.env
+.env*
+
+# Arquivos de compilação Java e logs
 bin/
-cinevoto_data.txt
-.idea/
-.vscode/
 *.class
 *.log
-data/
+cinevoto_data.txt
 
+# Configurações de IDE e diretórios temporários
+.idea/
+.vscode/
+cinevoto/
