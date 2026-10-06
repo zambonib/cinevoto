@@ -743,61 +743,29 @@ body {
 }
 
 /* ============================================================
-   TELA DE LOGIN
+   TELA 1: LANDING PAGE & LOGIN
 ============================================================ */
 .login-screen {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-}
-
-.login-card {
+    min-height: 100vh;
+    overflow-y: auto;
     position: relative;
-    z-index: 2;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 24px;
-    padding: 3rem 2.5rem;
-    max-width: 420px;
-    width: 90%;
-    text-align: center;
-    backdrop-filter: blur(20px);
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
+    z-index: 10;
 }
 
-.login-logo {
+.public-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.5rem;
-}
-
-.login-subtitle {
-    font-size: 0.95rem;
-    color: var(--text-secondary);
-    font-weight: 300;
-}
-
-.login-desc {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    line-height: 1.6;
-    max-width: 320px;
+    justify-content: space-between;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1rem;
 }
 
 .btn-google {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
-    width: 100%;
     padding: 0.85rem 1.5rem;
     background: #fff;
     color: #3c4043;
@@ -808,30 +776,218 @@ body {
     border-radius: 8px;
     cursor: pointer;
     transition: var(--transition-smooth);
-    margin-top: 0.5rem;
 }
+
 .btn-google:hover {
     background: #f1f3f4;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
 }
+
+.btn-google-header {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.88rem;
+    border-radius: 50px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
 .google-icon {
     width: 20px;
     height: 20px;
 }
 
+.landing-login-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 2rem;
+}
+
+.btn-google-large {
+    min-width: 280px;
+    padding: 1rem 2.25rem;
+    font-size: 1.05rem;
+    border-radius: 50px;
+    box-shadow: 0 8px 30px rgba(255, 255, 255, 0.15), 0 0 20px rgba(0, 242, 254, 0.2);
+}
+
+.btn-google-large:hover {
+    box-shadow: 0 10px 35px rgba(255, 255, 255, 0.25), 0 0 30px rgba(0, 242, 254, 0.4);
+}
+
 .login-footer {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.85rem;
+    color: var(--text-muted);
     line-height: 1.4;
-    max-width: 300px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 /* ============================================================
-   TELA HOME
+   TELA 2: HOME DO USUÁRIO LOGADO (DASHBOARD LIMPO)
 ============================================================ */
 .container-home {
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.user-dashboard {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3.5rem 1rem;
+    text-align: center;
+}
+
+.user-welcome-header {
+    margin-bottom: 2.5rem;
+}
+
+.user-welcome-header h2 {
+    font-size: 2.4rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #ffffff 0%, #b4b4d0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.user-welcome-header p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    max-width: 550px;
+    margin: 0 auto;
+}
+
+.home-actions-clean {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 2rem;
+    max-width: 860px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.home-action-card {
+    flex: 1;
+    min-width: 280px;
+    padding: 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.25rem;
+    position: relative;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    transition: var(--transition-smooth);
+}
+
+.home-action-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(0, 242, 254, 0.35);
+    box-shadow: 0 16px 40px rgba(0, 242, 254, 0.12);
+}
+
+.action-card-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0.25rem 0.65rem;
+    border-radius: 50px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--accent-neon-cyan);
+    border: 1px solid rgba(0, 242, 254, 0.2);
+}
+
+.home-action-card h3 {
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.home-action-card p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    flex: 1;
+}
+
+.home-action-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.home-action-divider span {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    padding: 0.4rem 0.8rem;
+    border-radius: 50px;
+}
+
+.join-form-clean {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.join-form-clean input {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    font-family: var(--font-outfit);
+    font-size: 1.1rem;
+    text-align: center;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    outline: none;
+    transition: var(--transition-smooth);
+}
+
+.join-form-clean input:focus {
+    border-color: var(--accent-neon-cyan);
+    box-shadow: var(--glow-cyan);
+}
+
+.btn-action-large {
+    width: 100%;
+    padding: 0.85rem 1.5rem;
+    font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+    .home-actions-clean {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    .user-welcome-header h2 {
+        font-size: 1.8rem;
+    }
+    .btn-google-header span {
+        display: none;
+    }
+    .btn-google-header {
+        padding: 0.5rem;
+    }
 }
 
 .header {

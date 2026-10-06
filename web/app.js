@@ -354,14 +354,21 @@ apiSettingsModal?.addEventListener('click', (e) => { if (e.target === apiSetting
 // ============================================================
 
 /** Login com Google */
-googleLoginBtn.addEventListener('click', async () => {
+async function handleGoogleLogin() {
     try {
         await signInWithPopup(auth, googleProvider);
     } catch (err) {
         showToast('Erro ao fazer login com o Google. Tente novamente.', 'error');
         console.error(err);
     }
+}
+
+document.querySelectorAll('.google-login-trigger').forEach(btn => {
+    btn.addEventListener('click', handleGoogleLogin);
 });
+if (googleLoginBtn) {
+    googleLoginBtn.addEventListener('click', handleGoogleLogin);
+}
 
 /** Logout */
 async function handleLogout() {
@@ -866,6 +873,69 @@ function renderizarFilmes(filmes, jáVotei) {
         `;
 
         moviesList.appendChild(card);
+
+        // Se o filme não veio com pôster ou sinopse (ex: rodada criada antes das chaves de API), enriquece agora em tempo real
+        if (!filme.posterUrl && filme.titulo) {
+            buscarDadosFilme(filme.titulo).then(dadosRicos => {
+                if (dadosRicos && (dadosRicos.posterUrl || dadosRicos.sinopse)) {
+                    Object.assign(filme, dadosRicos);
+                    filmesCache[idx] = filme;
+
+                    // Atualiza pôster
+                    const posterWrap = card.querySelector('.movie-poster-wrap');
+                    if (posterWrap && dadosRicos.posterUrl) {
+                        posterWrap.innerHTML = `<img src="${escapeHtml(dadosRicos.posterUrl)}" alt="${escapeHtml(dadosRicos.tituloPt || filme.titulo)}" class="movie-poster-img" loading="lazy">`;
+                    }
+
+                    // Atualiza título se encontrou o oficial em português
+                    const titleText = card.querySelector('.movie-title-text');
+                    if (titleText && dadosRicos.tituloPt && dadosRicos.tituloPt !== filme.titulo) {
+                        titleText.textContent = dadosRicos.tituloPt;
+                    }
+
+                    // Atualiza tags de avaliação
+                    const ratingsRow = card.querySelector('.movie-ratings-row');
+                    if (ratingsRow) {
+                        let newTags = '';
+                        if (dadosRicos.ano) newTags += `<span class="rating-tag rating-time"><i class="fa-regular fa-calendar"></i> ${escapeHtml(dadosRicos.ano)}</span>`;
+                        if (dadosRicos.duracao) newTags += `<span class="rating-tag rating-time"><i class="fa-regular fa-clock"></i> ${escapeHtml(dadosRicos.duracao)}</span>`;
+                        if (dadosRicos.imdbRating) newTags += `<span class="rating-tag rating-imdb" title="Nota no IMDb"><i class="fa-solid fa-star"></i> ${escapeHtml(dadosRicos.imdbRating)}</span>`;
+                        if (dadosRicos.rottenTomatoes) newTags += `<span class="rating-tag rating-rt" title="Aprovação no Rotten Tomatoes">🍅 ${escapeHtml(dadosRicos.rottenTomatoes)}</span>`;
+                        if (dadosRicos.metascore) newTags += `<span class="rating-tag rating-meta" title="Metascore">Ⓜ️ ${escapeHtml(dadosRicos.metascore)}</span>`;
+                        ratingsRow.innerHTML = newTags;
+                    }
+
+                    // Atualiza sinopse e botões
+                    const cardBody = card.querySelector('.movie-card-body');
+                    if (cardBody && dadosRicos.sinopse && !card.querySelector('.movie-synopsis-text')) {
+                        const synP = document.createElement('p');
+                        synP.className = 'movie-synopsis-text';
+                        synP.textContent = dadosRicos.sinopse;
+
+                        const actionsDiv = document.createElement('div');
+                        actionsDiv.className = 'movie-actions-row';
+
+                        if (dadosRicos.trailerUrl) {
+                            actionsDiv.innerHTML += `<button type="button" class="btn-trailer" data-trailer-idx="${idx}"><i class="fa-brands fa-youtube"></i> Trailer</button>`;
+                        }
+                        actionsDiv.innerHTML += `<button type="button" class="btn-synopsis-more" data-synopsis-idx="${idx}">Ver sinopse</button>`;
+
+                        actionsDiv.querySelectorAll('[data-trailer-idx]').forEach(b => {
+                            b.onclick = (e) => { e.stopPropagation(); abrirModalTrailer(dadosRicos.tituloPt || filme.titulo, dadosRicos.trailerUrl); };
+                        });
+                        actionsDiv.querySelectorAll('[data-synopsis-idx]').forEach(b => {
+                            b.onclick = (e) => { e.stopPropagation(); abrirModalSinopse(filme); };
+                        });
+
+                        const progressCont = card.querySelector('.progress-container');
+                        if (progressCont) {
+                            cardBody.insertBefore(synP, progressCont);
+                            cardBody.insertBefore(actionsDiv, progressCont);
+                        }
+                    }
+                }
+            }).catch(errEnrich => console.warn('Aviso ao enriquecer filme:', errEnrich));
+        }
     });
 
     // Vincula eventos de voto

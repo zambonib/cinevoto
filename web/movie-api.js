@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 //  movie-api.js — Integração CineVoto com TMDb e OMDb
 //  Busca de sinopses (pt-BR), pôsteres, trailers do YouTube e notas
 // ============================================================
@@ -168,14 +168,18 @@ export async function buscarDadosFilme(tituloOriginal) {
             }
         }
 
+        // Pôster oficial
+        const posterPath = details.poster_path || movieMatch.poster_path;
+        const backdropPath = details.backdrop_path || movieMatch.backdrop_path;
+
         return {
             titulo: tituloOriginal,
             tituloPt: details.title || movieMatch.title || tituloOriginal,
-            tituloOriginal: details.original_title || '',
-            ano: details.release_date ? details.release_date.substring(0, 4) : '',
+            tituloOriginal: details.original_title || movieMatch.original_title || '',
+            ano: (details.release_date || movieMatch.release_date || '').substring(0, 4),
             sinopse: sinopsePt,
-            posterUrl: details.poster_path ? `https://image.tmdb.org/t/p/w500${details.poster_path}` : '',
-            backdropUrl: details.backdrop_path ? `https://image.tmdb.org/t/p/w1280${details.backdrop_path}` : '',
+            posterUrl: posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : '',
+            backdropUrl: backdropPath ? `https://image.tmdb.org/t/p/w1280${backdropPath}` : '',
             generos: (details.genres || []).map(g => g.name).slice(0, 3),
             duracao: details.runtime ? `${details.runtime} min` : '',
             imdbId: details.imdb_id || '',
@@ -183,7 +187,7 @@ export async function buscarDadosFilme(tituloOriginal) {
             rottenTomatoes: rottenTomatoes,
             metascore: metascore,
             trailerKey: trailerKey,
-            trailerUrl: trailerKey ? `https://www.youtube.com/watch?v=${trailerKey}` : ''
+            trailerUrl: trailerKey ? `https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1` : ''
         };
 
     } catch (err) {

@@ -17,54 +17,27 @@
 <body>
 
     <!-- =====================================================
-         TELA 1: LOGIN (visível antes de autenticar)
+         TELA 1: LANDING PAGE & LOGIN (visível antes de autenticar)
     ====================================================== -->
     <div id="login-screen" class="login-screen hidden">
         <div class="background-decor">
             <div class="circle circle-1"></div>
             <div class="circle circle-2"></div>
         </div>
-        <div class="login-card">
-            <div class="login-logo">
+
+        <!-- Header Público da Landing Page -->
+        <header class="public-header container">
+            <div class="logo-area">
                 <i class="fa-solid fa-film logo-icon"></i>
                 <h1 class="logo-title">Cine<span>Voto</span></h1>
             </div>
-            <p class="login-subtitle">A votação perfeita para a noite de cinema</p>
-            <p class="login-desc">Entre com sua conta Google para criar uma sala ou participar de uma votação.</p>
-            <button id="google-login-btn" class="btn btn-google">
+            <button class="btn btn-google btn-google-header google-login-trigger">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon">
-                Entrar com Google
+                <span>Entrar com Google</span>
             </button>
-            <p class="login-footer">Ao entrar, seu nome e e-mail serão salvos para identificação na sala.</p>
-        </div>
-    </div>
+        </header>
 
-    <!-- =====================================================
-         TELA 2: HOME (criar sala ou entrar por código)
-    ====================================================== -->
-    <div id="home-screen" class="hidden">
-        <div class="background-decor">
-            <div class="circle circle-1"></div>
-            <div class="circle circle-2"></div>
-        </div>
-        <div class="container container-home">
-            <header class="header">
-                <div class="logo-area">
-                    <i class="fa-solid fa-film logo-icon"></i>
-                    <h1 class="logo-title">Cine<span>Voto</span></h1>
-                </div>
-                <div id="user-info-home" class="user-info">
-                    <img id="user-avatar-home" src="" alt="Avatar" class="user-avatar">
-                    <span id="user-name-home" class="user-name"></span>
-                    <button id="api-settings-btn-home" class="btn btn-logout" title="Configurar APIs (TMDb e OMDb)">
-                        <i class="fa-solid fa-gear"></i>
-                    </button>
-                    <button id="logout-btn-home" class="btn btn-logout" title="Sair">
-                        <i class="fa-solid fa-right-from-bracket"></i>
-                    </button>
-                </div>
-            </header>
-
+        <div class="container container-landing">
             <!-- Hero Section -->
             <section class="home-hero">
                 <div class="hero-badge">
@@ -77,30 +50,15 @@
                     Chega de passar 1 hora escolhendo filme no catálogo sem decidir nada. Crie sua sala personalizada, convide a galera por link ou QR Code e decida o vencedor com sinopses oficiais em português, trailers do YouTube e notas de crítica!
                 </p>
 
-                <!-- Ações principais: Criar ou Entrar -->
-                <div class="home-actions">
-                    <div class="home-card card">
-                        <div class="home-card-icon"><i class="fa-solid fa-plus-circle"></i></div>
-                        <h2>Criar Nova Sala</h2>
-                        <p>Você será o administrador, poderá cadastrar os 3 filmes da rodada, ver quem votou ao vivo e apurar o vencedor.</p>
-                        <button id="create-room-btn" class="btn btn-primary">
-                            <i class="fa-solid fa-clapperboard"></i> Criar Sala
-                        </button>
-                    </div>
-
-                    <div class="home-card-divider">ou</div>
-
-                    <div class="home-card card">
-                        <div class="home-card-icon"><i class="fa-solid fa-door-open"></i></div>
-                        <h2>Entrar em uma Sala</h2>
-                        <p>Digite o código de 6 letras que o criador da sala compartilhou com você para votar nos seus favoritos.</p>
-                        <div class="join-form">
-                            <input type="text" id="room-code-input" placeholder="Ex: ABC123" maxlength="6" autocomplete="off">
-                            <button id="join-room-btn" class="btn btn-primary">
-                                <i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar
-                            </button>
-                        </div>
-                    </div>
+                <!-- Chamada Principal para Login -->
+                <div class="landing-login-box">
+                    <button id="google-login-btn" class="btn btn-google btn-google-large google-login-trigger">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon">
+                        <span>Entrar com Google para Começar</span>
+                    </button>
+                    <p class="login-footer">
+                        <i class="fa-solid fa-shield-halved"></i> Acesso 100% gratuito e seguro via Google Auth.
+                    </p>
                 </div>
             </section>
 
@@ -218,6 +176,76 @@
 
             <footer class="footer">
                 <p>CineVoto © 2026 — O seu guia perfeito para noites de cinema inesquecíveis 🍿🎬</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- =====================================================
+         TELA 2: HOME DO USUÁRIO (Criar ou Entrar em Sala)
+    ====================================================== -->
+    <div id="home-screen" class="hidden">
+        <div class="background-decor">
+            <div class="circle circle-1"></div>
+            <div class="circle circle-2"></div>
+        </div>
+        <div class="container container-home">
+            <header class="header">
+                <div class="logo-area">
+                    <i class="fa-solid fa-film logo-icon"></i>
+                    <h1 class="logo-title">Cine<span>Voto</span></h1>
+                </div>
+                <div id="user-info-home" class="user-info">
+                    <img id="user-avatar-home" src="" alt="Avatar" class="user-avatar">
+                    <span id="user-name-home" class="user-name"></span>
+                    <button id="api-settings-btn-home" class="btn btn-logout" title="Configurar APIs (TMDb e OMDb)">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                    <button id="logout-btn-home" class="btn btn-logout" title="Sair">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Painel do Usuário Logado -->
+            <main class="user-dashboard">
+                <div class="user-welcome-header">
+                    <h2>Pronto para a sessão de hoje? 🍿</h2>
+                    <p>Crie uma nova sala para liderar a rodada ou digite o código de acesso compartilhado com você.</p>
+                </div>
+
+                <!-- Ações principais: Criar ou Entrar -->
+                <div class="home-actions-clean">
+                    <div class="home-action-card card">
+                        <div class="action-card-badge"><i class="fa-solid fa-crown"></i> Administrador</div>
+                        <div class="home-card-icon icon-pink"><i class="fa-solid fa-clapperboard"></i></div>
+                        <h3>Criar Nova Sala</h3>
+                        <p>Defina as opções de filmes, gere o QR Code para os amigos e acompanhe os votos em tempo real.</p>
+                        <button id="create-room-btn" class="btn btn-primary btn-action-large">
+                            <i class="fa-solid fa-plus-circle"></i> Criar Sala
+                        </button>
+                    </div>
+
+                    <div class="home-action-divider">
+                        <span>OU</span>
+                    </div>
+
+                    <div class="home-action-card card">
+                        <div class="action-card-badge"><i class="fa-solid fa-ticket"></i> Convidado</div>
+                        <div class="home-card-icon icon-cyan"><i class="fa-solid fa-door-open"></i></div>
+                        <h3>Entrar em uma Sala</h3>
+                        <p>Digite o código de 6 caracteres fornecido pelo criador da sala para votar nos seus favoritos.</p>
+                        <div class="join-form-clean">
+                            <input type="text" id="room-code-input" placeholder="Ex: ABC123" maxlength="6" autocomplete="off">
+                            <button id="join-room-btn" class="btn btn-primary">
+                                <i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="footer">
+                <p>CineVoto © 2026 — O seu guia perfeito para noites de cinema 🍿🎬</p>
             </footer>
         </div>
     </div>
