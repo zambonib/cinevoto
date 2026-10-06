@@ -10,6 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QRCode library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -54,39 +56,168 @@
                 <div id="user-info-home" class="user-info">
                     <img id="user-avatar-home" src="" alt="Avatar" class="user-avatar">
                     <span id="user-name-home" class="user-name"></span>
+                    <button id="api-settings-btn-home" class="btn btn-logout" title="Configurar APIs (TMDb e OMDb)">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
                     <button id="logout-btn-home" class="btn btn-logout" title="Sair">
                         <i class="fa-solid fa-right-from-bracket"></i>
                     </button>
                 </div>
             </header>
 
-            <div class="home-actions">
-                <div class="home-card card">
-                    <div class="home-card-icon"><i class="fa-solid fa-plus-circle"></i></div>
-                    <h2>Criar Nova Sala</h2>
-                    <p>Você será o administrador, poderá cadastrar filmes, ver quem votou e encerrar a votação.</p>
-                    <button id="create-room-btn" class="btn btn-primary">
-                        <i class="fa-solid fa-clapperboard"></i> Criar Sala
-                    </button>
+            <!-- Hero Section -->
+            <section class="home-hero">
+                <div class="hero-badge">
+                    <i class="fa-solid fa-sparkles"></i> CineVoto 2.0 • A Escolha Perfeita para a Noite de Cinema
                 </div>
+                <h1 class="hero-title">
+                    Escolha o filme da noite de forma <span class="gradient-text">rápida, justa e divertida</span>
+                </h1>
+                <p class="hero-subtitle">
+                    Chega de passar 1 hora escolhendo filme no catálogo sem decidir nada. Crie sua sala personalizada, convide a galera por link ou QR Code e decida o vencedor com sinopses oficiais em português, trailers do YouTube e notas de crítica!
+                </p>
 
-                <div class="home-card-divider">ou</div>
-
-                <div class="home-card card">
-                    <div class="home-card-icon"><i class="fa-solid fa-door-open"></i></div>
-                    <h2>Entrar em uma Sala</h2>
-                    <p>Digite o código de 6 letras que o criador da sala compartilhou com você.</p>
-                    <div class="join-form">
-                        <input type="text" id="room-code-input" placeholder="Ex: ABC123" maxlength="6" autocomplete="off">
-                        <button id="join-room-btn" class="btn btn-primary">
-                            <i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar
+                <!-- Ações principais: Criar ou Entrar -->
+                <div class="home-actions">
+                    <div class="home-card card">
+                        <div class="home-card-icon"><i class="fa-solid fa-plus-circle"></i></div>
+                        <h2>Criar Nova Sala</h2>
+                        <p>Você será o administrador, poderá cadastrar os 3 filmes da rodada, ver quem votou ao vivo e apurar o vencedor.</p>
+                        <button id="create-room-btn" class="btn btn-primary">
+                            <i class="fa-solid fa-clapperboard"></i> Criar Sala
                         </button>
                     </div>
+
+                    <div class="home-card-divider">ou</div>
+
+                    <div class="home-card card">
+                        <div class="home-card-icon"><i class="fa-solid fa-door-open"></i></div>
+                        <h2>Entrar em uma Sala</h2>
+                        <p>Digite o código de 6 letras que o criador da sala compartilhou com você para votar nos seus favoritos.</p>
+                        <div class="join-form">
+                            <input type="text" id="room-code-input" placeholder="Ex: ABC123" maxlength="6" autocomplete="off">
+                            <button id="join-room-btn" class="btn btn-primary">
+                                <i class="fa-solid fa-arrow-right-to-bracket"></i> Entrar
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </section>
+
+            <!-- Showcase: Versão Desktop (Notebook Mockup) -->
+            <section class="showcase-section desktop-showcase">
+                <div class="showcase-header">
+                    <span class="section-tag"><i class="fa-solid fa-laptop"></i> Versão Desktop</span>
+                    <h2>Painel de Controle Completo e em Tempo Real</h2>
+                    <p>O administrador acompanha tudo em uma visão panorâmica: rodadas ativas, lista de quem votou com fotos do Google e histórico permanente de filmes já assistidos.</p>
+                </div>
+
+                <div class="laptop-mockup-wrapper">
+                    <div class="laptop-mockup">
+                        <div class="laptop-lid">
+                            <div class="laptop-camera"></div>
+                            <div class="laptop-screen">
+                                <img src="assets/preview-desktop-room.png" alt="CineVoto na Versão Desktop" class="laptop-screenshot" loading="lazy">
+                            </div>
+                        </div>
+                        <div class="laptop-base">
+                            <div class="laptop-notch"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Showcase: Totalmente Responsivo (Celular na Mão) -->
+            <section class="showcase-section mobile-showcase">
+                <div class="showcase-header">
+                    <span class="section-tag section-tag-purple"><i class="fa-solid fa-mobile-screen-button"></i> 100% Responsivo</span>
+                    <h2>Vote do Sofá em Qualquer Smartphone</h2>
+                    <p>Seus convidados não precisam instalar absolutamente nada! Basta apontar a câmera do celular para o QR Code da sala e votar com um toque.</p>
+                </div>
+
+                <div class="mobile-showcase-container">
+                    <div class="phone-mockup-wrapper">
+                        <div class="phone-mockup">
+                            <div class="phone-buttons"></div>
+                            <div class="phone-bezel">
+                                <div class="phone-speaker"></div>
+                                <div class="phone-camera-hole"></div>
+                                <div class="phone-screen">
+                                    <img src="assets/preview-mobile.png" alt="CineVoto na Versão Mobile" class="phone-screenshot" loading="lazy">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mobile-features-list">
+                        <div class="mobile-feature-item card">
+                            <div class="feature-icon"><i class="fa-solid fa-qrcode"></i></div>
+                            <div>
+                                <h4>Entrada Instantânea por QR Code</h4>
+                                <p>Gere o QR Code no seu computador ou Smart TV e deixe os amigos entrarem sem precisar digitar links compridos.</p>
+                            </div>
+                        </div>
+                        <div class="mobile-feature-item card">
+                            <div class="feature-icon"><i class="fa-solid fa-bolt"></i></div>
+                            <div>
+                                <h4>Sincronização em Tempo Real</h4>
+                                <p>Cada voto computado atualiza as barras de progresso de todos os celulares no mesmo instante via Firebase.</p>
+                            </div>
+                        </div>
+                        <div class="mobile-feature-item card">
+                            <div class="feature-icon"><i class="fa-solid fa-film"></i></div>
+                            <div>
+                                <h4>Sinopses e Trailers na Palma da Mão</h4>
+                                <p>Consulte a sinopse em português e assista aos trailers do YouTube direto pelo navegador do celular.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Grid de Recursos e Diferenciais -->
+            <section class="features-section">
+                <div class="showcase-header">
+                    <span class="section-tag"><i class="fa-solid fa-star"></i> Recursos Inclusos</span>
+                    <h2>Tudo o que sua Noite de Cinema Precisa</h2>
+                </div>
+
+                <div class="features-grid">
+                    <div class="feature-card card">
+                        <div class="feature-card-icon icon-cyan"><i class="fa-solid fa-rotate"></i></div>
+                        <h3>Votação em Tempo Real</h3>
+                        <p>Powered by Cloud Firestore. Votos, líderes e vencedores atualizados instantaneamente sem precisar dar F5.</p>
+                    </div>
+                    <div class="feature-card card">
+                        <div class="feature-card-icon icon-pink"><i class="fa-solid fa-language"></i></div>
+                        <h3>Sinopses em Português</h3>
+                        <p>Integração com a base global do TMDb garantindo dados, sinopses e títulos em português do Brasil (pt-BR).</p>
+                    </div>
+                    <div class="feature-card card">
+                        <div class="feature-card-icon icon-purple"><i class="fa-brands fa-youtube"></i></div>
+                        <h3>Trailers do YouTube</h3>
+                        <p>Assista aos trailers oficiais incorporados sem sair da tela antes de escolher o seu voto.</p>
+                    </div>
+                    <div class="feature-card card">
+                        <div class="feature-card-icon icon-green"><i class="fa-solid fa-medal"></i></div>
+                        <h3>Notas IMDb & Rotten Tomatoes</h3>
+                        <p>Avaliações críticas direto do OMDb para você ter certeza da qualidade dos filmes da rodada.</p>
+                    </div>
+                    <div class="feature-card card">
+                        <div class="feature-card-icon icon-cyan"><i class="fa-solid fa-ban"></i></div>
+                        <h3>Anti-Repetição Inteligente</h3>
+                        <p>Filmes já assistidos são salvos no seu perfil e bloqueados automaticamente em novas rodadas com validação sem acentos.</p>
+                    </div>
+                    <div class="feature-card card">
+                        <div class="feature-card-icon icon-pink"><i class="fa-brands fa-google"></i></div>
+                        <h3>Login Seguro com Google</h3>
+                        <p>Acesse em um clique com sua conta Google e veja a foto de quem votou em cada filme.</p>
+                    </div>
+                </div>
+            </section>
 
             <footer class="footer">
-                <p>CineVoto © 2026 - O seu guia perfeito para noites de cinema 🍿🎬</p>
+                <p>CineVoto © 2026 — O seu guia perfeito para noites de cinema inesquecíveis 🍿🎬</p>
             </footer>
         </div>
     </div>
@@ -110,6 +241,9 @@
                 <div id="user-info-room" class="user-info">
                     <img id="user-avatar-room" src="" alt="Avatar" class="user-avatar">
                     <span id="user-name-room" class="user-name"></span>
+                    <button id="api-settings-btn-room" class="btn btn-logout" title="Configurar APIs (TMDb e OMDb)">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
                     <button id="back-home-btn" class="btn btn-logout" title="Voltar ao início">
                         <i class="fa-solid fa-house"></i>
                     </button>
@@ -123,6 +257,9 @@
                 <input type="text" id="invite-link-input" class="invite-link-input" readonly>
                 <button id="copy-link-btn" class="btn btn-copy" title="Copiar link">
                     <i class="fa-solid fa-copy"></i> Copiar
+                </button>
+                <button id="qr-code-btn" class="btn btn-copy btn-qr" title="Exibir QR Code para celular">
+                    <i class="fa-solid fa-qrcode"></i> QR Code
                 </button>
             </div>
 
@@ -167,9 +304,9 @@
                     <div class="card info-card">
                         <h3><i class="fa-solid fa-circle-question"></i> Como Funciona?</h3>
                         <ul class="help-list">
-                            <li><i class="fa-solid fa-chevron-right"></i> O Criador da sala cadastra 3 filmes para começar.</li>
-                            <li><i class="fa-solid fa-chevron-right"></i> Compartilha a lista dos filmes com a familia e amigos.</li>
-                            <li><i class="fa-solid fa-chevron-right"></i> Ao finalizar, o vencedor vai para a lista dos Filmes Assistidos.</li>
+                            <li><i class="fa-solid fa-chevron-right"></i> O Criador da sala cadastra <strong>3 filmes</strong> para começar.</li>
+                            <li><i class="fa-solid fa-chevron-right"></i> Compartilhe a lista dos filmes com a família e amigos via link ou QR Code.</li>
+                            <li><i class="fa-solid fa-chevron-right"></i> Ao finalizar, o vencedor vai para a lista de <strong>Filmes Assistidos</strong>.</li>
                             <li><i class="fa-solid fa-chevron-right"></i> Filmes assistidos não podem ser repetidos!</li>
                         </ul>
                     </div>
@@ -268,6 +405,95 @@
             <footer class="footer">
                 <p>CineVoto © 2026 - O seu guia perfeito para noites de cinema 🍿🎬</p>
             </footer>
+        </div>
+    </div>
+
+    <!-- =====================================================
+         MODAL 1: QR CODE DE ACESSO À SALA
+    ====================================================== -->
+    <div id="qr-modal" class="modal-overlay hidden">
+        <div class="modal-card modal-qr-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-qrcode"></i> Entrar na Sala via QR Code</h3>
+                <button id="close-qr-btn" class="modal-close-btn" title="Fechar">&times;</button>
+            </div>
+            <p class="modal-subtitle">Aponte a câmera do seu celular para entrar instantaneamente na votação:</p>
+            <div class="qrcode-wrapper">
+                <div id="qrcode-container"></div>
+            </div>
+            <div class="qr-code-info">
+                <span>Código da Sala: <strong id="qr-modal-code"></strong></span>
+            </div>
+            <div class="modal-actions">
+                <button id="modal-copy-link-btn" class="btn btn-secondary"><i class="fa-solid fa-copy"></i> Copiar Link</button>
+                <button id="modal-close-qr-btn" class="btn btn-primary">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+         MODAL 2: PLAYER DE TRAILER DO YOUTUBE
+    ====================================================== -->
+    <div id="trailer-modal" class="modal-overlay hidden">
+        <div class="modal-card modal-trailer-card">
+            <div class="modal-header">
+                <h3 id="trailer-modal-title"><i class="fa-brands fa-youtube"></i> Trailer Oficial</h3>
+                <button id="close-trailer-btn" class="modal-close-btn" title="Fechar">&times;</button>
+            </div>
+            <div class="trailer-video-container">
+                <iframe id="trailer-iframe" src="" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+         MODAL 3: SINOPSE COMPLETA DO FILME
+    ====================================================== -->
+    <div id="synopsis-modal" class="modal-overlay hidden">
+        <div class="modal-card modal-synopsis-card">
+            <div class="modal-header">
+                <h3 id="synopsis-modal-title"><i class="fa-solid fa-film"></i> Sinopse do Filme</h3>
+                <button id="close-synopsis-btn" class="modal-close-btn" title="Fechar">&times;</button>
+            </div>
+            <div class="synopsis-content">
+                <img id="synopsis-modal-poster" src="" alt="Pôster" class="synopsis-poster hidden">
+                <div class="synopsis-details">
+                    <div id="synopsis-modal-meta" class="synopsis-meta"></div>
+                    <p id="synopsis-modal-text" class="synopsis-text"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+         MODAL 4: CONFIGURAÇÃO DE APIS (TMDb e OMDb)
+    ====================================================== -->
+    <div id="api-settings-modal" class="modal-overlay hidden">
+        <div class="modal-card modal-api-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-sliders"></i> APIs de Cinema (TMDb e OMDb)</h3>
+                <button id="close-api-settings-btn" class="modal-close-btn" title="Fechar">&times;</button>
+            </div>
+            <p class="modal-subtitle">Conecte suas chaves gratuitas para buscar sinopses em português, trailers do YouTube e notas de crítica (IMDb e Rotten Tomatoes 🍅).</p>
+            
+            <div class="api-form-group">
+                <label for="tmdb-key-input"><i class="fa-solid fa-film"></i> Chave da API TMDb (The Movie Database):</label>
+                <input type="text" id="tmdb-key-input" placeholder="Cole sua API Key do TMDb aqui" autocomplete="off">
+                <small>Gratuita em <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">themoviedb.org</a> (Pôsteres, trailers e sinopses em pt-BR)</small>
+            </div>
+
+            <div class="api-form-group">
+                <label for="omdb-key-input"><i class="fa-solid fa-star"></i> Chave da API OMDb (Open Movie Database):</label>
+                <input type="text" id="omdb-key-input" placeholder="Cole sua API Key do OMDb aqui" autocomplete="off">
+                <small>Gratuita em <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener">omdbapi.com</a> (Notas do Rotten Tomatoes e IMDb)</small>
+            </div>
+
+            <div id="api-test-status" class="api-test-status hidden"></div>
+
+            <div class="modal-actions">
+                <button id="test-api-btn" class="btn btn-secondary"><i class="fa-solid fa-vial"></i> Testar Conexão</button>
+                <button id="save-api-btn" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Salvar Chaves</button>
+            </div>
         </div>
     </div>
 

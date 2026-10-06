@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 //  CineVoto 2.0 — Configuração do Firebase (Exemplo / Template)
 //  
 //  INSTRUÇÕES:
@@ -28,3 +28,14 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
+
+// Configurações das APIs opcionais de filmes (TMDb e OMDb)
+// TMDb (Gratuito): https://www.themoviedb.org/settings/api
+// OMDb (Gratuito): https://www.omdbapi.com/apikey.aspx
+export const tmdbConfig = {
+    apiKey: "" // Coloque sua chave TMDb aqui se preferir
+};
+
+export const omdbConfig = {
+    apiKey: "" // Coloque sua chave OMDb aqui se preferir
+};

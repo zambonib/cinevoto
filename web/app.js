@@ -4,6 +4,13 @@
 // ============================================================
 
 import { auth, db, googleProvider } from './firebase-config.js';
+import {
+    getTmdbKey,
+    getOmdbKey,
+    salvarChavesApi,
+    testarApis,
+    buscarDadosFilme
+} from './movie-api.js';
 
 import {
     signInWithPopup,
@@ -28,6 +35,7 @@ let usuarioUnsubscribe = null;   // Listener do perfil do usuário logado (tempo
 let userFilmesAssistidos = [];   // Filmes assistidos no histórico do usuário
 let roomFilmesAssistidos = [];   // Filmes assistidos na sala atual
 let isAdmin = false;             // Flag: usuário é admin desta sala?
+let filmesCache = [];            // Cache de filmes da rodada ativa para os modais
 
 // ============================================================
 // REFERÊNCIAS DOM — TELAS
@@ -46,18 +54,21 @@ const logoutBtnHome  = document.getElementById('logout-btn-home');
 const createRoomBtn  = document.getElementById('create-room-btn');
 const roomCodeInput  = document.getElementById('room-code-input');
 const joinRoomBtn    = document.getElementById('join-room-btn');
+const apiSettingsBtnHome = document.getElementById('api-settings-btn-home');
 
 // Room — Header
 const userAvatarRoom = document.getElementById('user-avatar-room');
 const userNameRoom   = document.getElementById('user-name-room');
 const backHomeBtn    = document.getElementById('back-home-btn');
 const roomCodeBadge  = document.getElementById('room-code-badge');
+const apiSettingsBtnRoom = document.getElementById('api-settings-btn-room');
 
 // Room — Invite Banner
 const inviteBanner    = document.getElementById('invite-banner');
 const inviteCode      = document.getElementById('invite-code');
 const inviteLinkInput = document.getElementById('invite-link-input');
 const copyLinkBtn     = document.getElementById('copy-link-btn');
+const qrCodeBtn       = document.getElementById('qr-code-btn');
 
 // Room — Controles
 const adminControls  = document.getElementById('admin-controls');
@@ -91,6 +102,34 @@ const moviesList       = document.getElementById('movies-list');
 const totalVotesBadge  = document.getElementById('total-votes-badge');
 const watchedList      = document.getElementById('watched-list');
 const toastContainer   = document.getElementById('toast-container');
+
+// Modais
+const qrModal           = document.getElementById('qr-modal');
+const closeQrBtn        = document.getElementById('close-qr-btn');
+const modalCloseQrBtn   = document.getElementById('modal-close-qr-btn');
+const modalCopyLinkBtn  = document.getElementById('modal-copy-link-btn');
+const qrcodeContainer   = document.getElementById('qrcode-container');
+const qrModalCode       = document.getElementById('qr-modal-code');
+
+const trailerModal      = document.getElementById('trailer-modal');
+const closeTrailerBtn   = document.getElementById('close-trailer-btn');
+const trailerModalTitle = document.getElementById('trailer-modal-title');
+const trailerIframe     = document.getElementById('trailer-iframe');
+
+const synopsisModal      = document.getElementById('synopsis-modal');
+const closeSynopsisBtn   = document.getElementById('close-synopsis-btn');
+const synopsisModalTitle = document.getElementById('synopsis-modal-title');
+const synopsisModalPoster= document.getElementById('synopsis-modal-poster');
+const synopsisModalMeta  = document.getElementById('synopsis-modal-meta');
+const synopsisModalText  = document.getElementById('synopsis-modal-text');
+
+const apiSettingsModal   = document.getElementById('api-settings-modal');
+const closeApiSettingsBtn= document.getElementById('close-api-settings-btn');
+const tmdbKeyInput       = document.getElementById('tmdb-key-input');
+const omdbKeyInput       = document.getElementById('omdb-key-input');
+const apiTestStatus      = document.getElementById('api-test-status');
+const testApiBtn         = document.getElementById('test-api-btn');
+const saveApiBtn         = document.getElementById('save-api-btn');
 
 // ============================================================
 // UTILITÁRIOS
@@ -166,6 +205,149 @@ function updateUrl(salaId) {
         window.history.pushState({}, '', window.location.pathname);
     }
 }
+
+// ============================================================
+// MODAIS (QR Code, Trailer, Sinopse, Configurações de API)
+// ============================================================
+
+/** Abre o modal de QR Code com o link direto da sala */
+function abrirModalQRCode() {
+    if (!currentSalaId) return;
+    const link = `${window.location.origin}${window.location.pathname}?sala=${currentSalaId}`;
+    if (qrModalCode) qrModalCode.textContent = currentSalaId;
+    if (qrcodeContainer) {
+        qrcodeContainer.innerHTML = '';
+        try {
+            if (window.QRCode) {
+                new window.QRCode(qrcodeContainer, {
+                    text: link,
+                    width: 200,
+                    height: 200,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: window.QRCode.CorrectLevel.H
+                });
+            } else {
+                qrcodeContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}" alt="QR Code">`;
+            }
+        } catch (e) {
+            qrcodeContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}" alt="QR Code">`;
+        }
+    }
+    qrModal.classList.remove('hidden');
+}
+
+function fecharModalQRCode() {
+    qrModal.classList.add('hidden');
+}
+
+/** Abre o modal do player de trailer do YouTube */
+function abrirModalTrailer(titulo, trailerUrl) {
+    if (!trailerUrl) {
+        showToast('Trailer não disponível para este filme.', 'info');
+        return;
+    }
+    trailerModalTitle.innerHTML = `<i class="fa-brands fa-youtube"></i> Trailer: ${escapeHtml(titulo)}`;
+    trailerIframe.src = trailerUrl;
+    trailerModal.classList.remove('hidden');
+}
+
+function fecharModalTrailer() {
+    trailerIframe.src = '';
+    trailerModal.classList.add('hidden');
+}
+
+/** Abre o modal com a sinopse em português e ficha do filme */
+function abrirModalSinopse(filme) {
+    if (!filme) return;
+    synopsisModalTitle.innerHTML = `<i class="fa-solid fa-film"></i> ${escapeHtml(filme.tituloPt || filme.titulo)}`;
+    
+    if (filme.posterUrl) {
+        synopsisModalPoster.src = filme.posterUrl;
+        synopsisModalPoster.classList.remove('hidden');
+    } else {
+        synopsisModalPoster.classList.add('hidden');
+    }
+
+    const metas = [];
+    if (filme.ano) metas.push(`<span><i class="fa-regular fa-calendar"></i> ${escapeHtml(filme.ano)}</span>`);
+    if (filme.duracao) metas.push(`<span><i class="fa-regular fa-clock"></i> ${escapeHtml(filme.duracao)}</span>`);
+    if (filme.generos && filme.generos.length > 0) metas.push(`<span><i class="fa-solid fa-tags"></i> ${escapeHtml(filme.generos.join(', '))}</span>`);
+    if (filme.imdbRating) metas.push(`<span><i class="fa-solid fa-star" style="color:#f5c518"></i> IMDb: ${escapeHtml(filme.imdbRating)}/10</span>`);
+    if (filme.rottenTomatoes) metas.push(`<span>🍅 RT: ${escapeHtml(filme.rottenTomatoes)}</span>`);
+    if (filme.metascore) metas.push(`<span>Ⓜ️ Metascore: ${escapeHtml(filme.metascore)}</span>`);
+    synopsisModalMeta.innerHTML = metas.join(' • ');
+
+    synopsisModalText.textContent = filme.sinopse || 'Nenhuma sinopse disponível em português para este filme.';
+    synopsisModal.classList.remove('hidden');
+}
+
+function fecharModalSinopse() {
+    synopsisModal.classList.add('hidden');
+}
+
+/** Abre o modal de configurações de APIs */
+function abrirModalConfigApis() {
+    tmdbKeyInput.value = getTmdbKey();
+    omdbKeyInput.value = getOmdbKey();
+    apiTestStatus.classList.add('hidden');
+    apiTestStatus.textContent = '';
+    apiSettingsModal.classList.remove('hidden');
+}
+
+function fecharModalConfigApis() {
+    apiSettingsModal.classList.add('hidden');
+}
+
+/** Testa as chaves inseridas nos campos */
+async function testarConfigApis() {
+    const tmdb = tmdbKeyInput.value.trim();
+    const omdb = omdbKeyInput.value.trim();
+    apiTestStatus.classList.remove('hidden');
+    apiTestStatus.innerHTML = '<div class="api-status-item"><i class="fa-solid fa-spinner fa-spin"></i> Testando chaves...</div>';
+    const res = await testarApis(tmdb, omdb);
+    let html = '';
+    html += `<div class="api-status-item ${res.tmdbOk ? 'status-ok' : 'status-err'}">
+        <i class="fa-solid ${res.tmdbOk ? 'fa-check' : 'fa-xmark'}"></i> ${escapeHtml(res.tmdbMsg)}
+    </div>`;
+    html += `<div class="api-status-item ${res.omdbOk ? 'status-ok' : 'status-err'}">
+        <i class="fa-solid ${res.omdbOk ? 'fa-check' : 'fa-xmark'}"></i> ${escapeHtml(res.omdbMsg)}
+    </div>`;
+    apiTestStatus.innerHTML = html;
+}
+
+/** Salva as chaves no localStorage */
+function salvarConfigApis() {
+    salvarChavesApi(tmdbKeyInput.value.trim(), omdbKeyInput.value.trim());
+    showToast('Chaves de API salvas com sucesso!', 'success');
+    fecharModalConfigApis();
+}
+
+// Listeners dos Modais
+qrCodeBtn?.addEventListener('click', abrirModalQRCode);
+closeQrBtn?.addEventListener('click', fecharModalQRCode);
+modalCloseQrBtn?.addEventListener('click', fecharModalQRCode);
+modalCopyLinkBtn?.addEventListener('click', () => {
+    if (inviteLinkInput) {
+        navigator.clipboard.writeText(inviteLinkInput.value).then(() => {
+            showToast('Link da sala copiado!', 'success');
+        });
+    }
+});
+qrModal?.addEventListener('click', (e) => { if (e.target === qrModal) fecharModalQRCode(); });
+
+closeTrailerBtn?.addEventListener('click', fecharModalTrailer);
+trailerModal?.addEventListener('click', (e) => { if (e.target === trailerModal) fecharModalTrailer(); });
+
+closeSynopsisBtn?.addEventListener('click', fecharModalSinopse);
+synopsisModal?.addEventListener('click', (e) => { if (e.target === synopsisModal) fecharModalSinopse(); });
+
+apiSettingsBtnHome?.addEventListener('click', abrirModalConfigApis);
+apiSettingsBtnRoom?.addEventListener('click', abrirModalConfigApis);
+closeApiSettingsBtn?.addEventListener('click', fecharModalConfigApis);
+testApiBtn?.addEventListener('click', testarConfigApis);
+saveApiBtn?.addEventListener('click', salvarConfigApis);
+apiSettingsModal?.addEventListener('click', (e) => { if (e.target === apiSettingsModal) fecharModalConfigApis(); });
 
 // ============================================================
 // AUTENTICAÇÃO
@@ -574,10 +756,11 @@ async function renderizarSala(sala, salaId) {
     }
 }
 
-/** Renderiza os cards de filmes com votos e barra de progresso */
+/** Renderiza os cards de filmes com votos, dados do TMDb/OMDb e barra de progresso */
 function renderizarFilmes(filmes, jáVotei) {
     moviesList.innerHTML = '';
     if (!filmes || filmes.length === 0) return;
+    filmesCache = filmes;
 
     const totalVotos = filmes.reduce((acc, f) => acc + (f.votos || 0), 0);
     totalVotesBadge.textContent = `Total: ${totalVotos} ${totalVotos === 1 ? 'voto' : 'votos'}`;
@@ -586,8 +769,9 @@ function renderizarFilmes(filmes, jáVotei) {
     let maxVotos = 0;
     let vencedores = [];
     filmes.forEach(f => {
-        if (f.votos > maxVotos) { maxVotos = f.votos; vencedores = [f.titulo]; }
-        else if (f.votos === maxVotos && maxVotos > 0) { vencedores.push(f.titulo); }
+        const t = f.tituloPt || f.titulo;
+        if (f.votos > maxVotos) { maxVotos = f.votos; vencedores = [t]; }
+        else if (f.votos === maxVotos && maxVotos > 0) { vencedores.push(t); }
     });
 
     // Banner do vencedor atual
@@ -608,6 +792,8 @@ function renderizarFilmes(filmes, jáVotei) {
     filmes.forEach((filme, idx) => {
         const pct = totalVotos > 0 ? Math.round(((filme.votos || 0) / totalVotos) * 100) : 0;
         const votantes = filme.votantes || [];
+        const tituloPrincipal = filme.tituloPt || filme.titulo;
+        const subTitulo = (filme.tituloPt && filme.tituloPt.toLowerCase() !== filme.titulo.toLowerCase()) ? `(${filme.titulo})` : '';
 
         const card = document.createElement('div');
         card.className = 'movie-item';
@@ -618,24 +804,63 @@ function renderizarFilmes(filmes, jáVotei) {
             `<img src="${escapeHtml(v.fotoUrl || '')}" alt="${escapeHtml(v.nome)}" title="${escapeHtml(v.nome)}" class="voter-avatar-mini">`
         ).join('');
 
+        // Monta tags de notas e metadados
+        let tagsHtml = '';
+        if (filme.ano) tagsHtml += `<span class="rating-tag rating-time"><i class="fa-regular fa-calendar"></i> ${escapeHtml(filme.ano)}</span>`;
+        if (filme.duracao) tagsHtml += `<span class="rating-tag rating-time"><i class="fa-regular fa-clock"></i> ${escapeHtml(filme.duracao)}</span>`;
+        if (filme.imdbRating) tagsHtml += `<span class="rating-tag rating-imdb" title="Nota no IMDb"><i class="fa-solid fa-star"></i> ${escapeHtml(filme.imdbRating)}</span>`;
+        if (filme.rottenTomatoes) tagsHtml += `<span class="rating-tag rating-rt" title="Aprovação no Rotten Tomatoes">🍅 ${escapeHtml(filme.rottenTomatoes)}</span>`;
+        if (filme.metascore) tagsHtml += `<span class="rating-tag rating-meta" title="Metascore">Ⓜ️ ${escapeHtml(filme.metascore)}</span>`;
+
+        // Pôster ou placeholder
+        const posterHtml = filme.posterUrl
+            ? `<div class="movie-poster-wrap"><img src="${escapeHtml(filme.posterUrl)}" alt="${escapeHtml(tituloPrincipal)}" class="movie-poster-img" loading="lazy"></div>`
+            : `<div class="movie-poster-wrap"><div class="movie-poster-placeholder"><i class="fa-solid fa-film"></i></div></div>`;
+
+        // Ações de mídia (Trailer e Sinopse)
+        let actionsHtml = '';
+        if (filme.trailerUrl) {
+            actionsHtml += `<button type="button" class="btn-trailer" data-trailer-idx="${idx}"><i class="fa-brands fa-youtube"></i> Trailer</button>`;
+        }
+        if (filme.sinopse) {
+            actionsHtml += `<button type="button" class="btn-synopsis-more" data-synopsis-idx="${idx}">Ver sinopse</button>`;
+        }
+
+        // Trecho de sinopse
+        const synopsisSnippetHtml = filme.sinopse
+            ? `<p class="movie-synopsis-text">${escapeHtml(filme.sinopse)}</p>`
+            : '';
+
         card.innerHTML = `
-            <div class="movie-info">
-                <div class="movie-details">
-                    <span class="movie-rank">#${idx + 1}</span>
-                    <span class="movie-title-text">${escapeHtml(filme.titulo)}</span>
-                </div>
-                <span class="movie-votes-count">${filme.votos || 0} ${(filme.votos || 0) === 1 ? 'voto' : 'votos'}</span>
-            </div>
-            <div class="progress-container">
-                <div class="progress-bar" style="width: ${pct}%"></div>
-            </div>
-            <div class="movie-footer">
-                <div class="voter-avatars-row">${avatarHtml}</div>
-                <div class="vote-btn-container">
-                    <button class="btn btn-vote" data-idx="${idx}" ${jáVotei ? 'disabled' : ''}>
-                        <i class="fa-solid ${jáVotei ? 'fa-check' : 'fa-thumbs-up'}"></i>
-                        ${jáVotei ? 'Votado' : 'Votar'}
-                    </button>
+            <div class="movie-card-enhanced">
+                ${posterHtml}
+                <div class="movie-card-body">
+                    <div class="movie-info" style="margin-bottom: 0.2rem;">
+                        <div class="movie-details">
+                            <span class="movie-rank">#${idx + 1}</span>
+                            <span class="movie-title-text" title="${escapeHtml(tituloPrincipal)}">${escapeHtml(tituloPrincipal)}</span>
+                            ${subTitulo ? `<small style="color: var(--text-muted); font-size: 0.8rem; margin-left: 0.35rem;">${escapeHtml(subTitulo)}</small>` : ''}
+                        </div>
+                        <span class="movie-votes-count">${filme.votos || 0} ${(filme.votos || 0) === 1 ? 'voto' : 'votos'}</span>
+                    </div>
+
+                    ${tagsHtml ? `<div class="movie-ratings-row">${tagsHtml}</div>` : ''}
+                    ${synopsisSnippetHtml}
+                    ${actionsHtml ? `<div class="movie-actions-row">${actionsHtml}</div>` : ''}
+
+                    <div class="progress-container" style="margin-top: 0.5rem;">
+                        <div class="progress-bar" style="width: ${pct}%"></div>
+                    </div>
+
+                    <div class="movie-footer" style="margin-top: 0.25rem;">
+                        <div class="voter-avatars-row">${avatarHtml}</div>
+                        <div class="vote-btn-container">
+                            <button class="btn btn-vote" data-idx="${idx}" ${jáVotei ? 'disabled' : ''}>
+                                <i class="fa-solid ${jáVotei ? 'fa-check' : 'fa-thumbs-up'}"></i>
+                                ${jáVotei ? 'Votado' : 'Votar'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
@@ -648,6 +873,30 @@ function renderizarFilmes(filmes, jáVotei) {
         btn.addEventListener('click', e => {
             const idx = parseInt(e.currentTarget.getAttribute('data-idx'));
             registrarVoto(idx);
+        });
+    });
+
+    // Vincula eventos de trailer
+    document.querySelectorAll('[data-trailer-idx]').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            const idx = parseInt(e.currentTarget.getAttribute('data-trailer-idx'));
+            const f = filmesCache[idx];
+            if (f && f.trailerUrl) {
+                abrirModalTrailer(f.tituloPt || f.titulo, f.trailerUrl);
+            }
+        });
+    });
+
+    // Vincula eventos de sinopse
+    document.querySelectorAll('[data-synopsis-idx]').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            const idx = parseInt(e.currentTarget.getAttribute('data-synopsis-idx'));
+            const f = filmesCache[idx];
+            if (f) {
+                abrirModalSinopse(f);
+            }
         });
     });
 }
@@ -892,9 +1141,44 @@ setupMoviesForm.addEventListener('submit', async (e) => {
         }
     }
 
+    const submitBtn = setupMoviesForm.querySelector('button[type="submit"]');
+    const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Consultando TMDb e OMDb...';
+    }
+
     try {
+        // Busca informações ricas no TMDb e OMDb (em paralelo)
+        let filmesDados = [];
+        try {
+            filmesDados = await Promise.all(titulos.map(t => buscarDadosFilme(t)));
+        } catch (apiErr) {
+            console.warn('Aviso ao consultar APIs de filmes:', apiErr);
+            filmesDados = titulos.map(t => ({ titulo: t, tituloPt: t }));
+        }
+
+        const filmes = filmesDados.map((info, idx) => ({
+            titulo: titulos[idx],
+            tituloPt: info.tituloPt || titulos[idx],
+            tituloOriginal: info.tituloOriginal || '',
+            ano: info.ano || '',
+            sinopse: info.sinopse || '',
+            posterUrl: info.posterUrl || '',
+            backdropUrl: info.backdropUrl || '',
+            generos: info.generos || [],
+            duracao: info.duracao || '',
+            imdbId: info.imdbId || '',
+            imdbRating: info.imdbRating || '',
+            rottenTomatoes: info.rottenTomatoes || '',
+            metascore: info.metascore || '',
+            trailerKey: info.trailerKey || '',
+            trailerUrl: info.trailerUrl || '',
+            votos: 0,
+            votantes: []
+        }));
+
         const salaRef = doc(db, 'salas', currentSalaId);
-        const filmes = titulos.map(titulo => ({ titulo, votos: 0, votantes: [] }));
 
         // Limpa votos da rodada anterior
         const votosRef = collection(db, 'salas', currentSalaId, 'votos');
@@ -907,10 +1191,15 @@ setupMoviesForm.addEventListener('submit', async (e) => {
         await updateDoc(salaRef, { filmes, status: 'ativa' });
 
         movieInputs.forEach(i => i.value = '');
-        showToast('Votação iniciada! Que comecem os votos! 🎉', 'success');
+        showToast('Votação iniciada com sucesso! 🎉', 'success');
     } catch (err) {
         showToast('Erro ao iniciar votação.', 'error');
         console.error(err);
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnHtml;
+        }
     }
 });
 
@@ -937,20 +1226,23 @@ finishRoundBtn.addEventListener('click', async () => {
         }
     });
 
+    const tituloExibicao = vencedor ? (vencedor.tituloPt || vencedor.titulo) : '';
     const confirmMsg = maxVotos > 0
-        ? `Encerrar votação?\nVencedor: "${vencedor.titulo}" com ${maxVotos} votos.`
-        : `Nenhum voto registrado. O primeiro filme "${filmes[0]?.titulo}" será o vencedor padrão.`;
+        ? `Encerrar votação?\nVencedor: "${tituloExibicao}" com ${maxVotos} votos.`
+        : `Nenhum voto registrado. O primeiro filme "${filmes[0]?.tituloPt || filmes[0]?.titulo}" será o vencedor padrão.`;
 
     if (!confirm(confirmMsg)) return;
 
     if (!vencedor && filmes.length > 0) vencedor = filmes[0];
     if (!vencedor) { showToast('Nenhum filme para finalizar.', 'warning'); return; }
 
+    const tituloFinalVencedor = vencedor.tituloPt || vencedor.titulo;
+
     try {
         // Adiciona vencedor à sub-coleção de assistidos da sala
         const assistidosRef = collection(db, 'salas', currentSalaId, 'assistidos');
         await addDoc(assistidosRef, {
-            titulo: vencedor.titulo,
+            titulo: tituloFinalVencedor,
             votos: vencedor.votos || 0,
             votantes: vencedor.votantes || [],
             vencedoraEm: serverTimestamp()
@@ -958,8 +1250,8 @@ finishRoundBtn.addEventListener('click', async () => {
 
         // Grava no perfil pessoal de cada participante (admin + votantes) que ele já assistiu esse filme
         const infoAssistidoPessoal = {
-            titulo: vencedor.titulo,
-            tituloNorm: normalizarTitulo(vencedor.titulo),
+            titulo: tituloFinalVencedor,
+            tituloNorm: normalizarTitulo(tituloFinalVencedor),
             data: new Date().toISOString()
         };
 
@@ -1006,7 +1298,7 @@ finishRoundBtn.addEventListener('click', async () => {
             await deleteDoc(votoDoc.ref);
         }
 
-        showToast(`Rodada encerrada! "${vencedor.titulo}" venceu! 🏆🍿`, 'success', 6000);
+        showToast(`Rodada encerrada! "${tituloFinalVencedor}" venceu! 🏆🍿`, 'success', 6000);
     } catch (err) {
         showToast('Erro ao finalizar a votação.', 'error');
         console.error(err);
