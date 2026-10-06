@@ -5,17 +5,63 @@
 
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Vouchers Mestres / Padrão (caso a coleção do Firestore esteja iniciando)
-const VOUCHERS_MESTRES = new Set([
+// Lista de 20 Vouchers Temáticos + Vouchers Padrão Ativos
+export const LISTA_VOUCHERS_ATIVOS = [
+    "CINE-VIP-2026",
+    "POPCORN-2026",
+    "ESTREIA-7782",
+    "SESSAO-9431",
+    "CINE-TOP-5520",
+    "TICKET-8819",
+    "CLUBE-CINE-34",
+    "CINEVOTO-PREM",
+    "VIP-SESSAO-10",
+    "MAGIC-FILM-99",
+    "SUPER-CINE-88",
+    "NOITE-FILME-4",
+    "CINE-AMIGOS-7",
+    "GOLD-PASS-2026",
+    "CINEMA-TOP-42",
+    "VIP-CINEMA-55",
+    "SESSAO-VIP-88",
+    "OSCAR-2026-BR",
+    "CINE-CLUBE-90",
+    "PREVIEW-2026",
+    // Vouchers legado / mestres
     "CINEVOTO2026",
     "CINE2026",
     "VIPCINE",
     "CONVITE2026",
     "FAMILIA2026"
-]);
+];
+
+const VOUCHERS_MESTRES = new Set(LISTA_VOUCHERS_ATIVOS.map(v => v.toUpperCase()));
 
 const STORAGE_LOCK_KEY = "cinevoto_sec_device_lock";
 const STORAGE_VOUCHER_KEY = "cinevoto_voucher_verified";
+
+/**
+ * Registra os vouchers oficiais na coleção 'vouchers' do Firestore caso ainda não existam
+ */
+export async function sincronizarVouchersOficiais(db) {
+    if (!db) return;
+    try {
+        for (const codigo of LISTA_VOUCHERS_ATIVOS) {
+            const vRef = doc(db, 'vouchers', codigo.toUpperCase());
+            const snap = await getDoc(vRef);
+            if (!snap.exists()) {
+                await setDoc(vRef, {
+                    codigo: codigo.toUpperCase(),
+                    ativo: true,
+                    criadoEm: serverTimestamp(),
+                    descricao: 'Voucher Oficial CineVoto'
+                });
+            }
+        }
+    } catch (e) {
+        // Silencioso se não houver permissão antes de autenticar
+    }
+}
 
 /**
  * Gera um identificador único de fingerprint do dispositivo
@@ -325,7 +371,10 @@ export async function validarVoucher(codigoVoucher, ip, user, db) {
 }
 
 /**
- * Verifica se o usuário atual já está liberado por voucher
+ * Verifica se o usuário atual já está liberado por voucher.
+ * Usuários que já possuem conta prévia no sistema são liberados automaticamente
+ * sem necessidade de digitar voucher.
+ * Apenas usuários novos (sem documento anterior em /usuarios) precisam inserir voucher no 1º acesso.
  */
 export async function usuarioTemVoucherAtivo(user, db) {
     if (localStorage.getItem(STORAGE_VOUCHER_KEY)) {
@@ -335,8 +384,27 @@ export async function usuarioTemVoucherAtivo(user, db) {
         try {
             const userDocRef = doc(db, 'usuarios', user.uid);
             const userSnap = await getDoc(userDocRef);
-            if (userSnap.exists() && userSnap.data().voucherAtivo === true) {
-                localStorage.setItem(STORAGE_VOUCHER_KEY, userSnap.data().voucherCodigo || 'VERIFIED');
+            
+            if (userSnap.exists()) {
+                const data = userSnap.data();
+                if (data.voucherAtivo === true) {
+                    localStorage.setItem(STORAGE_VOUCHER_KEY, data.voucherCodigo || 'VERIFIED');
+                    return true;
+                }
+
+                // Usuário pré-existente (já tinha conta antes):
+                // Configura automaticamente o voucher para ele nunca precisar digitar!
+                try {
+                    await setDoc(userDocRef, {
+                        voucherAtivo: true,
+                        voucherCodigo: 'MEMBRO_FUNDADOR',
+                        voucherValidadoEm: serverTimestamp()
+                    }, { merge: true });
+                } catch (saveErr) {
+                    console.warn('Aviso ao registrar voucher automático no perfil pré-existente:', saveErr);
+                }
+
+                localStorage.setItem(STORAGE_VOUCHER_KEY, 'MEMBRO_FUNDADOR');
                 return true;
             }
         } catch (e) {

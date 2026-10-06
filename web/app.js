@@ -16,7 +16,8 @@ import {
     obterIpUsuario,
     verificarBloqueioIp,
     validarVoucher,
-    usuarioTemVoucherAtivo
+    usuarioTemVoucherAtivo,
+    sincronizarVouchersOficiais
 } from './voucher-security.js';
 
 import {
@@ -566,6 +567,9 @@ async function liberarAcessoUsuario(user) {
     const dadosUsuario = await salvarUsuario(user);
     preencherInfoUsuario();
 
+    // Sincroniza vouchers oficiais no Firestore em background
+    sincronizarVouchersOficiais(db).catch(() => {});
+
     // 1º: Checa se veio com ?sala= na URL
     const salaUrl = getSalaFromUrl();
     // 2º: Checa no localStorage
@@ -695,14 +699,19 @@ async function salvarUsuario(user) {
         await setDoc(userRef, novoPerfil);
         return novoPerfil;
     } else {
-        // Atualiza último acesso
+        // Atualiza último acesso e assegura voucher de membro para usuários pré-existentes
         const dados = snap.data();
-        await updateDoc(userRef, {
+        const camposAtualizar = {
             ultimoAcesso: serverTimestamp(),
             nome: user.displayName,
             fotoUrl: user.photoURL
-        });
-        return dados;
+        };
+        if (dados.voucherAtivo !== true) {
+            camposAtualizar.voucherAtivo = true;
+            camposAtualizar.voucherCodigo = 'MEMBRO_FUNDADOR';
+        }
+        await updateDoc(userRef, camposAtualizar);
+        return { ...dados, ...camposAtualizar };
     }
 }
 
