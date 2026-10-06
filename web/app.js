@@ -13,6 +13,13 @@ import {
 } from './movie-api.js';
 
 import {
+    obterIpUsuario,
+    verificarBloqueioIp,
+    validarVoucher,
+    usuarioTemVoucherAtivo
+} from './voucher-security.js';
+
+import {
     signInWithPopup,
     signOut,
     onAuthStateChanged
@@ -27,6 +34,8 @@ import {
 // ESTADO GLOBAL
 // ============================================================
 let currentUser = null;          // Usuário Firebase Auth
+let voucherPendenteUser = null;  // Usuário autenticado que precisa validar voucher
+let userIp = null;               // Endereço IP do visitante
 let currentSalaId = null;        // ID da sala ativa
 let salaUnsubscribe = null;      // Listener do Firestore (para cancelar)
 let votosUnsubscribe = null;     // Listener de votos (para cancelar)
@@ -130,6 +139,21 @@ const omdbKeyInput       = document.getElementById('omdb-key-input');
 const apiTestStatus      = document.getElementById('api-test-status');
 const testApiBtn         = document.getElementById('test-api-btn');
 const saveApiBtn         = document.getElementById('save-api-btn');
+
+// Voucher e Bloqueio (Lockout)
+const voucherModal             = document.getElementById('voucher-modal');
+const closeVoucherBtn          = document.getElementById('close-voucher-btn');
+const cancelVoucherBtn         = document.getElementById('cancel-voucher-btn');
+const submitVoucherBtn         = document.getElementById('submit-voucher-btn');
+const voucherCodeInput         = document.getElementById('voucher-code-input');
+const voucherStatusMsg         = document.getElementById('voucher-status-msg');
+const voucherRemainingAttempts = document.getElementById('voucher-remaining-attempts');
+
+const lockoutModal       = document.getElementById('lockout-modal');
+const lockoutCloseBtn    = document.getElementById('lockout-close-btn');
+const lockoutMessageText = document.getElementById('lockout-message-text');
+const lockoutTimeDisplay = document.getElementById('lockout-time-display');
+const lockoutIpDisplay   = document.getElementById('lockout-ip-display');
 
 // ============================================================
 // UTILITÁRIOS
@@ -350,12 +374,152 @@ saveApiBtn?.addEventListener('click', salvarConfigApis);
 apiSettingsModal?.addEventListener('click', (e) => { if (e.target === apiSettingsModal) fecharModalConfigApis(); });
 
 // ============================================================
+// SISTEMA DE VOUCHER & CONTROLE DE BLOQUEIO POR IP (72 HORAS)
+// ============================================================
+
+/** Carrega o IP público e verifica se o usuário/dispositivo está bloqueado */
+async function carregarEVerificarIp() {
+    if (!userIp) {
+        userIp = await obterIpUsuario();
+    }
+    const status = await verificarBloqueioIp(userIp, db);
+    if (status.bloqueado) {
+        exibirModalBloqueio(status);
+        return false;
+    }
+    return true;
+}
+
+/** Exibe a tela de IP/Dispositivo Bloqueado com contagem de horas */
+function exibirModalBloqueio(statusBloqueio) {
+    if (lockoutMessageText) {
+        lockoutMessageText.textContent = statusBloqueio.motivo || 'Acesso bloqueado por segurança.';
+    }
+    if (lockoutTimeDisplay) {
+        lockoutTimeDisplay.textContent = statusBloqueio.permanente ? 'Permanente' : `${statusBloqueio.horasRestantes || 72} Horas restantes`;
+    }
+    if (lockoutIpDisplay) {
+        lockoutIpDisplay.textContent = userIp || 'Detectado';
+    }
+    lockoutModal.classList.remove('hidden');
+    if (currentUser) {
+        signOut(auth).catch(() => {});
+    }
+}
+
+/** Abre o modal de digitação de voucher */
+function abrirModalVoucher() {
+    if (voucherStatusMsg) {
+        voucherStatusMsg.classList.add('hidden');
+        voucherStatusMsg.textContent = '';
+        voucherStatusMsg.className = 'voucher-status-msg hidden';
+    }
+    if (voucherCodeInput) {
+        voucherCodeInput.value = '';
+    }
+    voucherModal.classList.remove('hidden');
+    setTimeout(() => voucherCodeInput?.focus(), 150);
+}
+
+/** Fecha o modal de voucher */
+function fecharModalVoucher() {
+    voucherModal.classList.add('hidden');
+}
+
+/** Submete o voucher para validação com controle de 3 tentativas */
+async function submeterVoucher() {
+    const codigo = voucherCodeInput?.value?.trim();
+    if (!codigo) {
+        if (voucherStatusMsg) {
+            voucherStatusMsg.textContent = 'Por favor, digite o código do seu voucher de convite.';
+            voucherStatusMsg.className = 'voucher-status-msg error';
+            voucherStatusMsg.classList.remove('hidden');
+        }
+        return;
+    }
+
+    if (!userIp) {
+        userIp = await obterIpUsuario();
+    }
+
+    if (submitVoucherBtn) submitVoucherBtn.disabled = true;
+
+    try {
+        const resultado = await validarVoucher(codigo, userIp, currentUser || voucherPendenteUser, db);
+
+        if (resultado.valido) {
+            if (voucherStatusMsg) {
+                voucherStatusMsg.textContent = resultado.mensagem;
+                voucherStatusMsg.className = 'voucher-status-msg success';
+                voucherStatusMsg.classList.remove('hidden');
+            }
+            showToast('Voucher validado com sucesso! Acesso liberado. 🎉', 'success', 4000);
+            setTimeout(async () => {
+                fecharModalVoucher();
+                if (currentUser) {
+                    await liberarAcessoUsuario(currentUser);
+                }
+            }, 800);
+        } else {
+            // Inválido
+            if (resultado.bloqueado) {
+                fecharModalVoucher();
+                exibirModalBloqueio({
+                    motivo: resultado.mensagem,
+                    horasRestantes: 72,
+                    permanente: false
+                });
+            } else {
+                if (voucherRemainingAttempts) {
+                    voucherRemainingAttempts.textContent = `${resultado.tentativasRestantes} de 3`;
+                }
+                if (voucherStatusMsg) {
+                    voucherStatusMsg.textContent = resultado.mensagem;
+                    voucherStatusMsg.className = 'voucher-status-msg error';
+                    voucherStatusMsg.classList.remove('hidden');
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Erro ao validar voucher:', err);
+        showToast('Erro ao validar voucher. Tente novamente.', 'error');
+    } finally {
+        if (submitVoucherBtn) submitVoucherBtn.disabled = false;
+    }
+}
+
+// Listeners do Voucher & Lockout
+submitVoucherBtn?.addEventListener('click', submeterVoucher);
+voucherCodeInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        submeterVoucher();
+    }
+});
+cancelVoucherBtn?.addEventListener('click', () => {
+    fecharModalVoucher();
+    handleLogout();
+});
+closeVoucherBtn?.addEventListener('click', () => {
+    fecharModalVoucher();
+    handleLogout();
+});
+lockoutCloseBtn?.addEventListener('click', () => {
+    lockoutModal.classList.add('hidden');
+    showScreen(loginScreen);
+});
+
+// ============================================================
 // AUTENTICAÇÃO
 // ============================================================
 
-/** Login com Google */
+/** Login com Google (com pré-verificação de bloqueio por IP) */
 async function handleGoogleLogin() {
     try {
+        const ipPermitido = await carregarEVerificarIp();
+        if (!ipPermitido) {
+            return;
+        }
         await signInWithPopup(auth, googleProvider);
     } catch (err) {
         showToast('Erro ao fazer login com o Google. Tente novamente.', 'error');
@@ -380,6 +544,7 @@ async function handleLogout() {
     userFilmesAssistidos = [];
     roomFilmesAssistidos = [];
     currentSalaId = null;
+    voucherPendenteUser = null;
     await signOut(auth);
 }
 
@@ -392,39 +557,58 @@ backHomeBtn.addEventListener('click', () => {
     showScreen(homeScreen);
 });
 
+/** Libera acesso do usuário à Home ou à Sala após autenticação e voucher */
+async function liberarAcessoUsuario(user) {
+    // Inicia listener em tempo real do perfil do usuário para filmes assistidos (Opção 1)
+    iniciarListenerUsuario(user.uid);
+
+    // Salva/atualiza perfil no Firestore e recupera a última sala salva no banco
+    const dadosUsuario = await salvarUsuario(user);
+    preencherInfoUsuario();
+
+    // 1º: Checa se veio com ?sala= na URL
+    const salaUrl = getSalaFromUrl();
+    // 2º: Checa no localStorage
+    const lastRoomLocal = localStorage.getItem(STORAGE_LAST_ROOM);
+    // 3º: Checa no banco de dados do Firestore (caso tenha limpado o navegador)
+    const lastRoomBanco = dadosUsuario?.ultimaSalaId;
+
+    const salaAlvo = salaUrl || lastRoomLocal || lastRoomBanco;
+
+    // Migra histórico de filmes assistidos de sessões anteriores caso ainda não estejam no perfil
+    if (salaAlvo) {
+        migrarAssistidosDeSala(salaAlvo.toUpperCase());
+    }
+
+    if (salaAlvo) {
+        await entrarNaSala(salaAlvo.toUpperCase());
+    } else {
+        showScreen(homeScreen);
+    }
+}
+
 /** Observador de estado de autenticação — ponto de entrada principal */
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
 
-        // Inicia listener em tempo real do perfil do usuário para filmes assistidos (Opção 1)
-        iniciarListenerUsuario(user.uid);
+        // 1. Checa se o IP está bloqueado
+        const ipPermitido = await carregarEVerificarIp();
+        if (!ipPermitido) return;
 
-        // Salva/atualiza perfil no Firestore e recupera a última sala salva no banco
-        const dadosUsuario = await salvarUsuario(user);
-        preencherInfoUsuario();
-
-        // 1º: Checa se veio com ?sala= na URL
-        const salaUrl = getSalaFromUrl();
-        // 2º: Checa no localStorage
-        const lastRoomLocal = localStorage.getItem(STORAGE_LAST_ROOM);
-        // 3º: Checa no banco de dados do Firestore (caso tenha limpado o navegador)
-        const lastRoomBanco = dadosUsuario?.ultimaSalaId;
-
-        const salaAlvo = salaUrl || lastRoomLocal || lastRoomBanco;
-
-        // Migra histórico de filmes assistidos de sessões anteriores caso ainda não estejam no perfil
-        if (salaAlvo) {
-            migrarAssistidosDeSala(salaAlvo.toUpperCase());
+        // 2. Checa se o usuário já possui voucher validado
+        const temVoucher = await usuarioTemVoucherAtivo(user, db);
+        if (!temVoucher) {
+            voucherPendenteUser = user;
+            abrirModalVoucher();
+            return;
         }
 
-        if (salaAlvo) {
-            await entrarNaSala(salaAlvo.toUpperCase());
-        } else {
-            showScreen(homeScreen);
-        }
+        // 3. Acesso liberado
+        await liberarAcessoUsuario(user);
     } else {
         currentUser = null;
+        voucherPendenteUser = null;
         cancelarListeners();
         if (usuarioUnsubscribe) {
             usuarioUnsubscribe();
@@ -435,6 +619,9 @@ onAuthStateChanged(auth, async (user) => {
         showScreen(loginScreen);
     }
 });
+
+// Verificação proativa de IP ao inicializar a página
+carregarEVerificarIp();
 
 // ============================================================
 // FIRESTORE — USUÁRIOS

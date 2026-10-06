@@ -2187,3 +2187,252 @@ body {
     }
 }
 
+/* ============================================================
+   SISTEMA DE VOUCHER & SEGURANÇA (TRAVA DE 72H / ANTI-ABUSO)
+============================================================ */
+
+.voucher-notice-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 1.25rem;
+    border-radius: 50px;
+    background: rgba(255, 180, 0, 0.12);
+    border: 1px solid rgba(255, 180, 0, 0.4);
+    color: #ffd166;
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 4px 15px rgba(255, 180, 0, 0.1);
+    animation: pulse-soft 2.5s infinite;
+}
+
+@keyframes pulse-soft {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 180, 0, 0.2); }
+    50% { box-shadow: 0 0 16px 2px rgba(255, 180, 0, 0.35); }
+}
+
+.modal-voucher-card {
+    max-width: 500px;
+    width: 92%;
+    border: 1px solid rgba(255, 180, 0, 0.3);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 180, 0, 0.15);
+}
+
+.voucher-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    text-align: left;
+}
+
+.voucher-security-alert {
+    display: flex;
+    gap: 0.85rem;
+    background: rgba(255, 60, 60, 0.1);
+    border: 1px solid rgba(255, 60, 60, 0.3);
+    border-radius: 12px;
+    padding: 1rem;
+    color: #ff9e9e;
+    font-size: 0.86rem;
+    line-height: 1.45;
+}
+
+.voucher-security-alert i {
+    font-size: 1.4rem;
+    color: #ff4d4d;
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+}
+
+.voucher-security-alert strong {
+    color: #fff;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.voucher-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.voucher-input-group label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.voucher-input-group input {
+    width: 100%;
+    padding: 0.9rem 1.25rem;
+    font-size: 1.25rem;
+    font-family: var(--font-outfit);
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 180, 0, 0.4);
+    border-radius: 10px;
+    outline: none;
+    transition: var(--transition-smooth);
+}
+
+.voucher-input-group input:focus {
+    border-color: #ffd166;
+    box-shadow: 0 0 20px rgba(255, 209, 102, 0.35);
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.voucher-status-msg {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.voucher-status-msg.error {
+    background: rgba(255, 50, 50, 0.15);
+    border: 1px solid rgba(255, 50, 50, 0.4);
+    color: #ff7676;
+}
+
+.voucher-status-msg.success {
+    background: rgba(0, 255, 128, 0.15);
+    border: 1px solid rgba(0, 255, 128, 0.4);
+    color: #00ff80;
+}
+
+.voucher-attempts-counter {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.voucher-attempts-counter strong {
+    color: #ffd166;
+}
+
+/* Modal de Bloqueio (Lockout 72h) */
+.modal-lockout-card {
+    max-width: 520px;
+    width: 92%;
+    border: 2px solid rgba(255, 45, 85, 0.6);
+    background: linear-gradient(145deg, #18080c 0%, #0d0608 100%);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(255, 45, 85, 0.25);
+    text-align: center;
+    padding: 2.5rem 2rem;
+}
+
+.lockout-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.lockout-icon-wrap {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255, 45, 85, 0.15);
+    border: 2px solid rgba(255, 45, 85, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 30px rgba(255, 45, 85, 0.3);
+}
+
+.lockout-icon {
+    font-size: 2.4rem;
+    color: #ff2d55;
+}
+
+.lockout-header h2 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+}
+
+.lockout-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 0.25rem 0.8rem;
+    border-radius: 50px;
+    background: rgba(255, 45, 85, 0.2);
+    color: #ff6482;
+    border: 1px solid rgba(255, 45, 85, 0.4);
+}
+
+.lockout-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.lockout-message {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.lockout-info-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-align: left;
+}
+
+.lockout-info-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.lockout-info-item i {
+    color: #ff2d55;
+    margin-right: 0.5rem;
+}
+
+.lockout-info-item strong {
+    color: #fff;
+    font-family: var(--font-outfit);
+}
+
+.lockout-warning-permanent {
+    font-size: 0.82rem;
+    color: #ff7676;
+    line-height: 1.4;
+    background: rgba(255, 45, 85, 0.08);
+    border-radius: 8px;
+    padding: 0.65rem 0.85rem;
+}
+
+.btn-lockout {
+    width: 100%;
+    padding: 0.9rem;
+    font-size: 1rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.btn-lockout:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+

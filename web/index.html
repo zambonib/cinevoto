@@ -31,10 +31,6 @@
                 <i class="fa-solid fa-film logo-icon"></i>
                 <h1 class="logo-title">Cine<span>Voto</span></h1>
             </div>
-            <button class="btn btn-google btn-google-header google-login-trigger">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon">
-                <span>Entrar com Google</span>
-            </button>
         </header>
 
         <div class="container container-landing">
@@ -50,14 +46,17 @@
                     Chega de passar 1 hora escolhendo filme no catálogo sem decidir nada. Crie sua sala personalizada, convide a galera por link ou QR Code e decida o vencedor com sinopses oficiais em português, trailers do YouTube e notas de crítica!
                 </p>
 
-                <!-- Chamada Principal para Login -->
+                <!-- Chamada Principal para Login com Requisito de Voucher -->
                 <div class="landing-login-box">
+                    <div class="voucher-notice-badge">
+                        <i class="fa-solid fa-ticket"></i> Acesso Exclusivo: É necessário possuir um <strong>Voucher de Convite</strong> para entrar
+                    </div>
                     <button id="google-login-btn" class="btn btn-google btn-google-large google-login-trigger">
                         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon">
                         <span>Entrar com Google para Começar</span>
                     </button>
                     <p class="login-footer">
-                        <i class="fa-solid fa-shield-halved"></i> Acesso 100% gratuito e seguro via Google Auth.
+                        <i class="fa-solid fa-shield-halved"></i> Acesso 100% gratuito e seguro via Google Auth. Trava anti-abuso ativa (máx. 3 tentativas de voucher).
                     </p>
                 </div>
             </section>
@@ -521,6 +520,86 @@
             <div class="modal-actions">
                 <button id="test-api-btn" class="btn btn-secondary"><i class="fa-solid fa-vial"></i> Testar Conexão</button>
                 <button id="save-api-btn" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Salvar Chaves</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+         MODAL 5: VALIDAÇÃO DE VOUCHER DE ACESSO
+    ====================================================== -->
+    <div id="voucher-modal" class="modal-overlay hidden">
+        <div class="modal-card modal-voucher-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-ticket"></i> Inserir Voucher de Convite</h3>
+                <button id="close-voucher-btn" class="modal-close-btn" title="Fechar">&times;</button>
+            </div>
+
+            <div class="voucher-modal-body">
+                <div class="voucher-security-alert">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <div>
+                        <strong>Aviso de Segurança Anti-Abuso:</strong>
+                        <p>O acesso ao CineVoto é restrito a convidados. Você possui <strong>no máximo 3 tentativas</strong> para digitar um voucher válido. Ao errar 3 vezes, seu <strong>endereço IP será bloqueado por 72 horas</strong> automaticamente.</p>
+                    </div>
+                </div>
+
+                <div class="voucher-input-group">
+                    <label for="voucher-code-input"><i class="fa-solid fa-key"></i> Código do Voucher:</label>
+                    <input type="text" id="voucher-code-input" placeholder="Ex: CINEVOTO2026" maxlength="25" autocomplete="off" spellcheck="false">
+                </div>
+
+                <div id="voucher-status-msg" class="voucher-status-msg hidden"></div>
+
+                <div class="voucher-attempts-counter" id="voucher-attempts-counter">
+                    <i class="fa-solid fa-shield-halved"></i> Tentativas disponíveis: <strong id="voucher-remaining-attempts">3 de 3</strong>
+                </div>
+
+                <div class="modal-actions">
+                    <button id="cancel-voucher-btn" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Cancelar / Sair</button>
+                    <button id="submit-voucher-btn" class="btn btn-primary"><i class="fa-solid fa-check-circle"></i> Validar e Entrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+         MODAL 6: BLOQUEIO DE IP / DISPOSITIVO (72 Horas)
+    ====================================================== -->
+    <div id="lockout-modal" class="modal-overlay hidden">
+        <div class="modal-card modal-lockout-card">
+            <div class="lockout-header">
+                <div class="lockout-icon-wrap">
+                    <i class="fa-solid fa-ban lockout-icon"></i>
+                </div>
+                <h2>Acesso Bloqueado</h2>
+                <span class="lockout-badge">Proteção de Sistema Ativa</span>
+            </div>
+
+            <div class="lockout-body">
+                <p id="lockout-message-text" class="lockout-message">
+                    Você excedeu o limite máximo de 3 tentativas consecutivas com vouchers inválidos. Por motivos de segurança, este endereço IP foi temporariamente bloqueado.
+                </p>
+
+                <div class="lockout-info-box">
+                    <div class="lockout-info-item">
+                        <i class="fa-regular fa-clock"></i>
+                        <span>Tempo de Bloqueio:</span>
+                        <strong id="lockout-time-display">72 Horas</strong>
+                    </div>
+                    <div class="lockout-info-item">
+                        <i class="fa-solid fa-network-wired"></i>
+                        <span>IP Rastreado:</span>
+                        <strong id="lockout-ip-display">Detectando...</strong>
+                    </div>
+                </div>
+
+                <p class="lockout-warning-permanent">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Caso ocorram novas violações recorrentes após a liberação, este dispositivo e endereço IP serão <strong>bloqueados permanentemente</strong>.
+                </p>
+
+                <button id="lockout-close-btn" class="btn btn-secondary btn-lockout">
+                    <i class="fa-solid fa-rotate-right"></i> Fechar e Voltar
+                </button>
             </div>
         </div>
     </div>
