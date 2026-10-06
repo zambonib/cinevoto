@@ -311,10 +311,19 @@ function fecharModalSinopse() {
     synopsisModal.classList.add('hidden');
 }
 
-/** Abre o modal de configurações de APIs */
+const MASK_PLACEHOLDER = '••••••••••••••••';
+
+/** Abre o modal de configurações de APIs com chaves mascaradas */
 function abrirModalConfigApis() {
-    tmdbKeyInput.value = getTmdbKey();
-    omdbKeyInput.value = getOmdbKey();
+    const tmdbAtiva = getTmdbKey();
+    const omdbAtiva = getOmdbKey();
+
+    // Se já houver chave configurada, exibe apenas a máscara de proteção
+    tmdbKeyInput.value = tmdbAtiva ? MASK_PLACEHOLDER : '';
+    omdbKeyInput.value = omdbAtiva ? MASK_PLACEHOLDER : '';
+    tmdbKeyInput.dataset.configured = tmdbAtiva ? 'true' : 'false';
+    omdbKeyInput.dataset.configured = omdbAtiva ? 'true' : 'false';
+
     apiTestStatus.classList.add('hidden');
     apiTestStatus.textContent = '';
     apiSettingsModal.classList.remove('hidden');
@@ -326,10 +335,20 @@ function fecharModalConfigApis() {
 
 /** Testa as chaves inseridas nos campos */
 async function testarConfigApis() {
-    const tmdb = tmdbKeyInput.value.trim();
-    const omdb = omdbKeyInput.value.trim();
+    const rawTmdb = tmdbKeyInput.value.trim();
+    const rawOmdb = omdbKeyInput.value.trim();
+
+    // Se o valor estiver mascarado, usa a chave interna ativa
+    const tmdb = (rawTmdb === MASK_PLACEHOLDER && tmdbKeyInput.dataset.configured === 'true')
+        ? getTmdbKey()
+        : rawTmdb;
+
+    const omdb = (rawOmdb === MASK_PLACEHOLDER && omdbKeyInput.dataset.configured === 'true')
+        ? getOmdbKey()
+        : rawOmdb;
+
     apiTestStatus.classList.remove('hidden');
-    apiTestStatus.innerHTML = '<div class="api-status-item"><i class="fa-solid fa-spinner fa-spin"></i> Testando chaves...</div>';
+    apiTestStatus.innerHTML = '<div class="api-status-item"><i class="fa-solid fa-spinner fa-spin"></i> Testando conexão com APIs...</div>';
     const res = await testarApis(tmdb, omdb);
     let html = '';
     html += `<div class="api-status-item ${res.tmdbOk ? 'status-ok' : 'status-err'}">
@@ -341,10 +360,22 @@ async function testarConfigApis() {
     apiTestStatus.innerHTML = html;
 }
 
-/** Salva as chaves no localStorage */
+/** Salva as chaves de forma ofuscada */
 function salvarConfigApis() {
-    salvarChavesApi(tmdbKeyInput.value.trim(), omdbKeyInput.value.trim());
-    showToast('Chaves de API salvas com sucesso!', 'success');
+    const rawTmdb = tmdbKeyInput.value.trim();
+    const rawOmdb = omdbKeyInput.value.trim();
+
+    // Se manteve os pontos, preserva a chave atual
+    const tmdbSalvar = (rawTmdb === MASK_PLACEHOLDER && tmdbKeyInput.dataset.configured === 'true')
+        ? getTmdbKey()
+        : rawTmdb;
+
+    const omdbSalvar = (rawOmdb === MASK_PLACEHOLDER && omdbKeyInput.dataset.configured === 'true')
+        ? getOmdbKey()
+        : rawOmdb;
+
+    salvarChavesApi(tmdbSalvar, omdbSalvar);
+    showToast('Chaves de API atualizadas com sucesso!', 'success');
     fecharModalConfigApis();
 }
 
@@ -832,6 +863,7 @@ function configurarPapel(salaId, admin) {
         voterStatus.classList.add('hidden');
         votersPanel.classList.remove('hidden');
         inviteBanner.classList.remove('hidden');
+        apiSettingsBtnRoom?.classList.remove('hidden');
         inviteCode.textContent = salaId;
         const link = `${window.location.origin}${window.location.pathname}?sala=${salaId}`;
         inviteLinkInput.value = link;
@@ -840,6 +872,7 @@ function configurarPapel(salaId, admin) {
         voterStatus.classList.remove('hidden');
         votersPanel.classList.add('hidden');
         inviteBanner.classList.add('hidden');
+        apiSettingsBtnRoom?.classList.add('hidden');
     }
 }
 

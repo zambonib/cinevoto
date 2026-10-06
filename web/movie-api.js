@@ -5,20 +5,69 @@
 
 import { tmdbConfig, omdbConfig } from './firebase-config.js';
 
-/** Recupera a chave da API TMDb (localStorage tem prioridade sobre o config) */
+/**
+ * Decodifica uma chave de API que foi ofuscada com XOR + Base64
+ */
+function _decKey(val) {
+    if (!val || typeof val !== 'string') return '';
+    const clean = val.trim();
+    // Se for formato de chave direta hexadecimal TMDb (32 chars) ou OMDb (8 chars)
+    if (/^[a-f0-9]{8}$|^[a-f0-9]{32}$/i.test(clean)) {
+        return clean;
+    }
+    try {
+        const bin = atob(clean);
+        const dec = bin.split('').map((c, i) => String.fromCharCode(c.charCodeAt(0) ^ (42 + (i % 7)))).join('');
+        return dec.trim();
+    } catch (e) {
+        return clean;
+    }
+}
+
+/**
+ * Ofusca uma chave para armazenamento seguro
+ */
+function _encKey(str) {
+    if (!str || typeof str !== 'string') return '';
+    const clean = str.trim();
+    try {
+        const encoded = clean.split('').map((c, i) => String.fromCharCode(c.charCodeAt(0) ^ (42 + (i % 7)))).join('');
+        return btoa(encoded);
+    } catch (e) {
+        return clean;
+    }
+}
+
+/** Recupera a chave da API TMDb decodificada (localStorage ou config) */
 export function getTmdbKey() {
-    return (localStorage.getItem('cinevoto_tmdb_key') || tmdbConfig?.apiKey || '').trim();
+    const raw = (localStorage.getItem('cinevoto_tmdb_key') || tmdbConfig?.apiKey || '').trim();
+    return _decKey(raw);
 }
 
-/** Recupera a chave da API OMDb (localStorage tem prioridade sobre o config) */
+/** Recupera a chave da API OMDb decodificada (localStorage ou config) */
 export function getOmdbKey() {
-    return (localStorage.getItem('cinevoto_omdb_key') || omdbConfig?.apiKey || '').trim();
+    const raw = (localStorage.getItem('cinevoto_omdb_key') || omdbConfig?.apiKey || '').trim();
+    return _decKey(raw);
 }
 
-/** Salva as chaves no localStorage do navegador */
+/** Salva as chaves no localStorage do navegador de forma ofuscada */
 export function salvarChavesApi(tmdbKey, omdbKey) {
-    if (tmdbKey !== undefined) localStorage.setItem('cinevoto_tmdb_key', tmdbKey.trim());
-    if (omdbKey !== undefined) localStorage.setItem('cinevoto_omdb_key', omdbKey.trim());
+    if (tmdbKey !== undefined) {
+        const clean = tmdbKey.trim();
+        if (clean) {
+            localStorage.setItem('cinevoto_tmdb_key', _encKey(clean));
+        } else {
+            localStorage.removeItem('cinevoto_tmdb_key');
+        }
+    }
+    if (omdbKey !== undefined) {
+        const clean = omdbKey.trim();
+        if (clean) {
+            localStorage.setItem('cinevoto_omdb_key', _encKey(clean));
+        } else {
+            localStorage.removeItem('cinevoto_omdb_key');
+        }
+    }
 }
 
 /**

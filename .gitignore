@@ -1,4 +1,4 @@
-﻿# Configuração sensível com chaves da API do Firebase (NÃO EXPOR)
+# Configuração sensível com chaves da API do Firebase (NÃO EXPOR)
 web/firebase-config.js
 firebase-config.js
 *.env
@@ -14,3 +14,6 @@ cinevoto_data.txt
 .idea/
 .vscode/
 cinevoto/
+
+# Templates e materiais de comunicação interna
+email-novidades-cinevoto.html
