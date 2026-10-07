@@ -22,6 +22,8 @@ import {
 
 import {
     signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     signOut,
     onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -545,17 +547,52 @@ lockoutCloseBtn?.addEventListener('click', () => {
 // AUTENTICAÇÃO
 // ============================================================
 
-/** Login com Google (com pré-verificação de bloqueio por IP) */
+/** Checagem rápida e síncrona de bloqueio local (não quebra o gesto de clique no iOS/Safari) */
+function ipEstaBloqueadoLocalmente() {
+    const lock = localStorage.getItem("cinevoto_sec_device_lock");
+    if (lock) {
+        try {
+            const data = JSON.parse(lock);
+            if (data.permanente || (data.bloqueadoAte && data.bloqueadoAte > Date.now())) {
+                return true;
+            }
+        } catch (e) {}
+    }
+    return false;
+}
+
+/** Login com Google (otimizado para Desktop e Mobile/Safari) */
 async function handleGoogleLogin() {
+    // 1. Checagem síncrona instantânea (não faz fetch para não quebrar o gesto de clique no iOS)
+    if (ipEstaBloqueadoLocalmente()) {
+        exibirModalBloqueio({ motivo: "Acesso bloqueado por segurança (72 horas após tentativas inválidas)." });
+        return;
+    }
+
     try {
-        const ipPermitido = await carregarEVerificarIp();
-        if (!ipPermitido) {
-            return;
-        }
+        // Dispara o popup no mesmo tick do evento de toque/clique
         await signInWithPopup(auth, googleProvider);
     } catch (err) {
-        showToast('Erro ao fazer login com o Google. Tente novamente.', 'error');
-        console.error(err);
+        console.warn('signInWithPopup falhou ou foi bloqueado pelo navegador:', err?.code, err);
+
+        // Fallback automático para redirect caso o navegador mobile (Safari iOS / Chrome) bloqueie popups
+        if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
+            try {
+                showToast('Redirecionando para login seguro com o Google...', 'info', 3000);
+                await signInWithRedirect(auth, googleProvider);
+                return;
+            } catch (redirErr) {
+                console.error('Erro no signInWithRedirect:', redirErr);
+            }
+        }
+
+        if (err.code === 'auth/unauthorized-domain') {
+            showToast('Domínio não autorizado no Firebase Console. Adicione dalzam.com.br em Authorized Domains.', 'error', 8000);
+        } else if (err.code === 'auth/popup-closed-by-user') {
+            showToast('Login cancelado: janela do Google foi fechada.', 'warning', 3000);
+        } else {
+            showToast(`Erro ao fazer login (${err.code || 'Google Auth'}): ${err.message || 'Tente novamente.'}`, 'error', 6000);
+        }
     }
 }
 
@@ -652,6 +689,13 @@ onAuthStateChanged(auth, async (user) => {
         userFilmesAssistidos = [];
         roomFilmesAssistidos = [];
         showScreen(loginScreen);
+    }
+});
+
+// Trata retorno de redirecionamento caso o navegador móvel tenha utilizado signInWithRedirect
+getRedirectResult(auth).catch((err) => {
+    if (err && err.code) {
+        console.warn('getRedirectResult avisou:', err.code, err);
     }
 });
 
