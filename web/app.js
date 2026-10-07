@@ -1295,32 +1295,49 @@ async function sincronizarAssistidosComPerfilUsuario() {
     }
 }
 
-/** Renderiza a coluna de filmes assistidos (Opção 1 - Histórico Pessoal + Sala) */
+/** Renderiza a coluna de filmes assistidos (mais recentes no início / topo da lista) */
 function renderizarColunaAssistidos() {
     if (!watchedList) return;
     watchedList.innerHTML = '';
 
-    const filmesMap = new Map();
+    // Coleta todos os filmes com timestamps para ordenação decrescente (mais recente primeiro)
+    const todosItens = [];
 
-    // 1. Filmes do histórico pessoal permanente do usuário logado (todas as salas)
-    (userFilmesAssistidos || []).forEach(f => {
-        const norm = f.tituloNorm || normalizarTitulo(f.titulo);
-        if (norm && !filmesMap.has(norm)) {
-            filmesMap.set(norm, {
-                titulo: f.titulo,
-                origem: 'pessoal'
-            });
-        }
-    });
-
-    // 2. Filmes assistidos da sala atual
+    // 1. Filmes assistidos da sala atual (com vencedoraEm ou data)
     (roomFilmesAssistidos || []).forEach(f => {
         const norm = normalizarTitulo(f.titulo);
-        if (norm && !filmesMap.has(norm)) {
-            filmesMap.set(norm, {
-                titulo: f.titulo,
-                origem: 'sala'
-            });
+        if (!norm) return;
+        let ts = 0;
+        if (f.vencedoraEm?.toMillis) ts = f.vencedoraEm.toMillis();
+        else if (f.vencedoraEm?.seconds) ts = f.vencedoraEm.seconds * 1000;
+        else if (f.data) ts = new Date(f.data).getTime() || 0;
+        todosItens.push({
+            titulo: f.titulo,
+            norm,
+            timestamp: ts
+        });
+    });
+
+    // 2. Filmes do histórico pessoal do usuário logado (com data ISO ou índice)
+    (userFilmesAssistidos || []).forEach((f, idx) => {
+        const norm = f.tituloNorm || normalizarTitulo(f.titulo);
+        if (!norm) return;
+        let ts = f.data ? (new Date(f.data).getTime() || 0) : idx;
+        todosItens.push({
+            titulo: f.titulo,
+            norm,
+            timestamp: ts
+        });
+    });
+
+    // Ordena do mais recente para o mais antigo (últimos filmes vistos no topo)
+    todosItens.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+    // Desduplica mantendo a primeira ocorrência (que é a mais recente)
+    const filmesMap = new Map();
+    todosItens.forEach(item => {
+        if (!filmesMap.has(item.norm)) {
+            filmesMap.set(item.norm, item.titulo);
         }
     });
 
@@ -1336,12 +1353,12 @@ function renderizarColunaAssistidos() {
         return;
     }
 
-    filmesMap.forEach((info) => {
+    filmesMap.forEach((titulo) => {
         const item = document.createElement('div');
         item.className = 'watched-item';
         item.innerHTML = `
             <i class="fa-solid fa-ticket"></i>
-            <span class="watched-title-text" title="${escapeHtml(info.titulo)}">${escapeHtml(info.titulo)}</span>
+            <span class="watched-title-text" title="${escapeHtml(titulo)}">${escapeHtml(titulo)}</span>
             <span class="watched-badge"><i class="fa-solid fa-check"></i> Assistido</span>
         `;
         watchedList.appendChild(item);

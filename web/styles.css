@@ -2436,3 +2436,34 @@ body {
     background: rgba(255, 255, 255, 0.12);
 }
 
+/* ============================================================
+   LISTA DE ASSISTIDOS NO MOBILE: MÁXIMO DE 5 FILMES COM SCROLL
+============================================================ */
+@media (max-width: 768px) {
+    .watched-list {
+        /* Exibe até 5 filmes por vez na tela com rolagem para o restante */
+        max-height: 298px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding-right: 0.45rem;
+        scrollbar-width: thin;
+        scrollbar-color: var(--accent-neon-purple) rgba(255, 255, 255, 0.05);
+    }
+
+    .watched-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .watched-list::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 10px;
+    }
+
+    .watched-list::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, var(--accent-neon-purple) 0%, var(--accent-neon-pink) 100%);
+        border-radius: 10px;
+        box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
+    }
+}
+
