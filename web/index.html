@@ -142,33 +142,45 @@
                 <div class="features-grid">
                     <div class="feature-card card">
                         <div class="feature-card-icon icon-cyan"><i class="fa-solid fa-rotate"></i></div>
-                        <h3>Votação em Tempo Real</h3>
-                        <p>Powered by Cloud Firestore. Votos, líderes e vencedores atualizados instantaneamente sem precisar dar F5.</p>
+                        <div class="feature-card-content">
+                            <h3>Votação em Tempo Real</h3>
+                            <p>Powered by Cloud Firestore. Votos, líderes e vencedores atualizados instantaneamente sem precisar dar F5.</p>
+                        </div>
                     </div>
                     <div class="feature-card card">
                         <div class="feature-card-icon icon-pink"><i class="fa-solid fa-language"></i></div>
-                        <h3>Sinopses em Português</h3>
-                        <p>Integração com a base global do TMDb garantindo dados, sinopses e títulos em português do Brasil (pt-BR).</p>
+                        <div class="feature-card-content">
+                            <h3>Sinopses em Português</h3>
+                            <p>Integração com a base global do TMDb garantindo dados, sinopses e títulos em português do Brasil (pt-BR).</p>
+                        </div>
                     </div>
                     <div class="feature-card card">
                         <div class="feature-card-icon icon-purple"><i class="fa-brands fa-youtube"></i></div>
-                        <h3>Trailers do YouTube</h3>
-                        <p>Assista aos trailers oficiais incorporados sem sair da tela antes de escolher o seu voto.</p>
+                        <div class="feature-card-content">
+                            <h3>Trailers do YouTube</h3>
+                            <p>Assista aos trailers oficiais incorporados sem sair da tela antes de escolher o seu voto.</p>
+                        </div>
                     </div>
                     <div class="feature-card card">
                         <div class="feature-card-icon icon-green"><i class="fa-solid fa-medal"></i></div>
-                        <h3>Notas IMDb & Rotten Tomatoes</h3>
-                        <p>Avaliações críticas direto do OMDb para você ter certeza da qualidade dos filmes da rodada.</p>
+                        <div class="feature-card-content">
+                            <h3>Notas IMDb & Rotten Tomatoes</h3>
+                            <p>Avaliações críticas direto do OMDb para você ter certeza da qualidade dos filmes da rodada.</p>
+                        </div>
                     </div>
                     <div class="feature-card card">
                         <div class="feature-card-icon icon-cyan"><i class="fa-solid fa-ban"></i></div>
-                        <h3>Anti-Repetição Inteligente</h3>
-                        <p>Filmes já assistidos são salvos no seu perfil e bloqueados automaticamente em novas rodadas com validação sem acentos.</p>
+                        <div class="feature-card-content">
+                            <h3>Anti-Repetição Inteligente</h3>
+                            <p>Filmes já assistidos são salvos no seu perfil e bloqueados automaticamente em novas rodadas com validação sem acentos.</p>
+                        </div>
                     </div>
                     <div class="feature-card card">
                         <div class="feature-card-icon icon-pink"><i class="fa-brands fa-google"></i></div>
-                        <h3>Login Seguro com Google</h3>
-                        <p>Acesse em um clique com sua conta Google e veja a foto de quem votou em cada filme.</p>
+                        <div class="feature-card-content">
+                            <h3>Login Seguro com Google</h3>
+                            <p>Acesse em um clique com sua conta Google e veja a foto de quem votou em cada filme.</p>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -279,15 +291,21 @@
 
             <!-- Banner de convite (visível para o admin) -->
             <div id="invite-banner" class="invite-banner hidden">
-                <i class="fa-solid fa-share-nodes"></i>
-                <span>Compartilhe o código <strong id="invite-code"></strong> ou o link:</span>
-                <input type="text" id="invite-link-input" class="invite-link-input" readonly>
-                <button id="copy-link-btn" class="btn btn-copy" title="Copiar link">
-                    <i class="fa-solid fa-copy"></i> Copiar
-                </button>
-                <button id="qr-code-btn" class="btn btn-copy btn-qr" title="Exibir QR Code para celular">
-                    <i class="fa-solid fa-qrcode"></i> QR Code
-                </button>
+                <div class="invite-text-wrap">
+                    <i class="fa-solid fa-share-nodes"></i>
+                    <span>Compartilhe o código <strong id="invite-code"></strong> ou o link:</span>
+                </div>
+                <div class="invite-controls-wrap">
+                    <input type="text" id="invite-link-input" class="invite-link-input" readonly>
+                    <div class="invite-btns-row">
+                        <button id="copy-link-btn" class="btn btn-copy" title="Copiar link">
+                            <i class="fa-solid fa-copy"></i> Copiar
+                        </button>
+                        <button id="qr-code-btn" class="btn btn-copy btn-qr" title="Exibir QR Code para celular">
+                            <i class="fa-solid fa-qrcode"></i> QR Code
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- Layout principal: 3 colunas -->
@@ -331,10 +349,10 @@
                     <div class="card info-card">
                         <h3><i class="fa-solid fa-circle-question"></i> Como Funciona?</h3>
                         <ul class="help-list">
-                            <li><i class="fa-solid fa-chevron-right"></i> O Criador da sala cadastra <strong>3 filmes</strong> para começar.</li>
+                            <li><i class="fa-solid fa-chevron-right"></i> O criador da sala cadastra 3 filmes para começar.</li>
                             <li><i class="fa-solid fa-chevron-right"></i> Compartilhe a lista dos filmes com a família e amigos via link ou QR Code.</li>
-                            <li><i class="fa-solid fa-chevron-right"></i> Ao finalizar, o vencedor vai para a lista de <strong>Filmes Assistidos</strong>.</li>
-                            <li><i class="fa-solid fa-chevron-right"></i> Filmes assistidos não podem ser repetidos!</li>
+                            <li><i class="fa-solid fa-chevron-right"></i> Ao finalizar a rodada, o filme vencedor entra na lista de filmes assistidos.</li>
+                            <li><i class="fa-solid fa-chevron-right"></i> Filmes já assistidos não podem ser repetidos em novas votações!</li>
                         </ul>
                     </div>
                 </aside>
