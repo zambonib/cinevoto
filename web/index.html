@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CineVoto - Escolha o Filme de Hoje</title>
+    <!-- Favicon: Ícone do Cinema para Chrome / Navegador -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+    <link rel="shortcut icon" href="favicon.ico">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,7 +53,10 @@
                 <!-- Chamada Principal para Login com Requisito de Voucher -->
                 <div class="landing-login-box">
                     <div class="voucher-notice-badge">
-                        <i class="fa-solid fa-ticket"></i> Acesso Exclusivo: É necessário possuir um <strong>Voucher de Convite</strong> para entrar
+                        <i class="fa-solid fa-ticket"></i>
+                        <div class="voucher-notice-text">
+                            <strong>Acesso Exclusivo:</strong> É necessário possuir um voucher de convite para entrar.
+                        </div>
                     </div>
                     <button id="google-login-btn" class="btn btn-google btn-google-large google-login-trigger">
                         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" class="google-icon">
